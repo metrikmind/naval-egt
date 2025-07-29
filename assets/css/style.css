@@ -1,0 +1,823 @@
+/* Naval EGT Plugin - Main Styles */
+
+/* ========================================
+   General Styles
+======================================== */
+
+.naval-egt-area-riservata {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    line-height: 1.6;
+}
+
+.naval-egt-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px 20px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.naval-egt-header h2 {
+    margin: 0 0 15px 0;
+    font-size: 2.2em;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.naval-egt-header p {
+    margin: 0;
+    font-size: 1.1em;
+    opacity: 0.95;
+    line-height: 1.8;
+}
+
+/* ========================================
+   Form Styles
+======================================== */
+
+.naval-egt-form-group {
+    margin-bottom: 20px;
+}
+
+.naval-egt-form-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.naval-egt-form-row .naval-egt-form-group {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.naval-egt-form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.naval-egt-form-group input[type="text"],
+.naval-egt-form-group input[type="email"],
+.naval-egt-form-group input[type="password"],
+.naval-egt-form-group input[type="tel"],
+.naval-egt-form-group select,
+.naval-egt-form-group textarea {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.naval-egt-form-group input:focus,
+.naval-egt-form-group select:focus,
+.naval-egt-form-group textarea:focus {
+    outline: none;
+    border-color: #2a5298;
+    box-shadow: 0 0 0 3px rgba(42, 82, 152, 0.1);
+}
+
+.naval-egt-form-group input[type="file"] {
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #e1e5e9;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.naval-egt-form-group input[type="file"]:hover {
+    border-color: #2a5298;
+    background-color: #f0f4f8;
+}
+
+/* ========================================
+   Buttons
+======================================== */
+
+.naval-egt-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+.naval-egt-btn-primary {
+    background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%);
+    color: white;
+}
+
+.naval-egt-btn-primary:hover {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(42, 82, 152, 0.4);
+}
+
+.naval-egt-btn-secondary {
+    background: #f8f9fa;
+    color: #2a5298;
+    border: 2px solid #2a5298;
+}
+
+.naval-egt-btn-secondary:hover {
+    background: #2a5298;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(42, 82, 152, 0.3);
+}
+
+.naval-egt-btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.naval-egt-btn-danger:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
+}
+
+.naval-egt-btn-sm {
+    padding: 8px 16px;
+    font-size: 14px;
+    margin: 0 3px;
+}
+
+.naval-egt-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ========================================
+   Login & Register Sections
+======================================== */
+
+.naval-egt-login-section,
+.naval-egt-register-section {
+    background: white;
+    padding: 30px;
+    margin-bottom: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+}
+
+.naval-egt-login-section h3,
+.naval-egt-register-section h3 {
+    margin: 0 0 20px 0;
+    color: #2a5298;
+    font-size: 1.4em;
+    font-weight: 600;
+}
+
+.naval-egt-forgot-password {
+    margin-top: 8px;
+}
+
+.naval-egt-forgot-password a {
+    color: #2a5298;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.naval-egt-forgot-password a:hover {
+    text-decoration: underline;
+}
+
+.naval-egt-checkbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.naval-egt-checkbox input[type="checkbox"] {
+    margin-right: 10px;
+    width: auto;
+}
+
+/* ========================================
+   Support Info
+======================================== */
+
+.naval-egt-support-info {
+    text-align: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    border-left: 4px solid #2a5298;
+}
+
+.naval-egt-support-info a {
+    color: #2a5298;
+    font-weight: 600;
+}
+
+/* ========================================
+   Instructions
+======================================== */
+
+.naval-egt-instructions {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+}
+
+.naval-egt-instructions h3 {
+    color: #2a5298;
+    margin: 0 0 25px 0;
+    font-size: 1.5em;
+    font-weight: 600;
+    border-bottom: 2px solid #e1e5e9;
+    padding-bottom: 10px;
+}
+
+.naval-egt-instruction-block {
+    margin-bottom: 25px;
+}
+
+.naval-egt-instruction-block:last-child {
+    margin-bottom: 0;
+}
+
+.naval-egt-instruction-block h4 {
+    color: #1e3c72;
+    margin: 0 0 15px 0;
+    font-size: 1.2em;
+    font-weight: 600;
+}
+
+.naval-egt-instruction-block p {
+    margin: 0 0 15px 0;
+    color: #555;
+    line-height: 1.7;
+}
+
+.naval-egt-instruction-block p:last-child {
+    margin-bottom: 0;
+}
+
+/* ========================================
+   Dashboard Styles
+======================================== */
+
+.naval-egt-dashboard {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.naval-egt-dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px 30px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    border-radius: 10px;
+}
+
+.naval-egt-dashboard-header h2 {
+    margin: 0;
+    font-size: 1.8em;
+    font-weight: 600;
+}
+
+.naval-egt-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.naval-egt-stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    text-align: center;
+    border: 1px solid #e1e5e9;
+    transition: transform 0.3s ease;
+}
+
+.naval-egt-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+.naval-egt-stat-card h3 {
+    margin: 0 0 15px 0;
+    color: #2a5298;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+
+.naval-egt-stat-number {
+    font-size: 2em;
+    font-weight: 700;
+    color: #1e3c72;
+}
+
+.naval-egt-dashboard-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 30px;
+}
+
+.naval-egt-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border: 1px solid #e1e5e9;
+    margin-bottom: 20px;
+}
+
+.naval-egt-section h3 {
+    margin: 0 0 20px 0;
+    color: #2a5298;
+    font-size: 1.3em;
+    font-weight: 600;
+    border-bottom: 2px solid #e1e5e9;
+    padding-bottom: 10px;
+}
+
+/* ========================================
+   Profile Info
+======================================== */
+
+.naval-egt-profile-info p {
+    margin: 0 0 10px 0;
+    color: #555;
+}
+
+.naval-egt-profile-info strong {
+    color: #2a5298;
+    display: inline-block;
+    width: 100px;
+}
+
+/* ========================================
+   Activity List
+======================================== */
+
+.naval-egt-activity-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.naval-egt-activity-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #e1e5e9;
+    transition: background-color 0.3s ease;
+}
+
+.naval-egt-activity-item:hover {
+    background-color: #f8f9fa;
+}
+
+.naval-egt-activity-item:last-child {
+    border-bottom: none;
+}
+
+.naval-egt-activity-icon {
+    font-size: 1.5em;
+    margin-right: 15px;
+    width: 30px;
+    text-align: center;
+}
+
+.naval-egt-activity-details {
+    flex: 1;
+}
+
+.naval-egt-activity-action {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.naval-egt-activity-date {
+    font-size: 0.9em;
+    color: #777;
+}
+
+/* ========================================
+   FTP Manager
+======================================== */
+
+.naval-egt-ftp-manager {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.naval-egt-ftp-toolbar {
+    display: flex;
+    gap: 10px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e1e5e9;
+    flex-wrap: wrap;
+}
+
+.naval-egt-ftp-navigation {
+    padding: 15px 20px;
+    background: #f0f4f8;
+    border-bottom: 1px solid #e1e5e9;
+    font-family: monospace;
+    color: #2a5298;
+    font-weight: 600;
+}
+
+.naval-egt-file-list {
+    min-height: 300px;
+    padding: 20px;
+}
+
+.naval-egt-file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+}
+
+.naval-egt-file-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.naval-egt-file-item:hover {
+    box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.naval-egt-file-item[data-type="folder"] {
+    background: #f0f8ff;
+    border-color: #2a5298;
+}
+
+.naval-egt-file-icon {
+    font-size: 2em;
+    margin-right: 15px;
+    width: 40px;
+    text-align: center;
+}
+
+.naval-egt-file-info {
+    flex: 1;
+}
+
+.naval-egt-file-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 5px;
+    word-break: break-all;
+}
+
+.naval-egt-file-size,
+.naval-egt-file-date {
+    font-size: 0.9em;
+    color: #777;
+    margin-bottom: 3px;
+}
+
+.naval-egt-file-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.naval-egt-empty-folder {
+    text-align: center;
+    padding: 50px 20px;
+    color: #777;
+    font-style: italic;
+}
+
+.naval-egt-loading {
+    text-align: center;
+    padding: 50px 20px;
+    color: #2a5298;
+    font-weight: 600;
+}
+
+/* ========================================
+   Progress Bar
+======================================== */
+
+.naval-egt-progress-bar {
+    width: 100%;
+    height: 6px;
+    background-color: #e1e5e9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.naval-egt-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2a5298, #1e3c72);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* ========================================
+   Modal Styles
+======================================== */
+
+.naval-egt-modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    backdrop-filter: blur(3px);
+}
+
+.naval-egt-modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.naval-egt-close {
+    position: absolute;
+    right: 15px;
+    top: 15px;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+    transition: color 0.3s ease;
+}
+
+.naval-egt-close:hover {
+    color: #000;
+}
+
+.naval-egt-modal-content h3 {
+    margin: 0 0 20px 0;
+    color: #2a5298;
+    font-size: 1.4em;
+    font-weight: 600;
+}
+
+/* ========================================
+   Notices
+======================================== */
+
+.naval-egt-notice {
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border-left: 4px solid;
+    font-weight: 500;
+    animation: noticeSlideIn 0.3s ease;
+}
+
+@keyframes noticeSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.naval-egt-notice-success {
+    background-color: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+.naval-egt-notice-error {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.naval-egt-notice-warning {
+    background-color: #fff3cd;
+    border-color: #ffc107;
+    color: #856404;
+}
+
+.naval-egt-notice-info {
+    background-color: #d1ecf1;
+    border-color: #17a2b8;
+    color: #0c5460;
+}
+
+.naval-egt-notice p {
+    margin: 0;
+}
+
+/* ========================================
+   Responsive Design
+======================================== */
+
+@media (max-width: 768px) {
+    .naval-egt-area-riservata {
+        padding: 10px;
+    }
+    
+    .naval-egt-header {
+        padding: 20px 15px;
+    }
+    
+    .naval-egt-header h2 {
+        font-size: 1.8em;
+    }
+    
+    .naval-egt-form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+    
+    .naval-egt-dashboard-header {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+    
+    .naval-egt-dashboard-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .naval-egt-stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .naval-egt-file-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .naval-egt-ftp-toolbar {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .naval-egt-btn {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .naval-egt-file-actions {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    
+    .naval-egt-modal-content {
+        margin: 10% auto;
+        width: 95%;
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .naval-egt-login-section,
+    .naval-egt-register-section,
+    .naval-egt-section {
+        padding: 20px 15px;
+    }
+    
+    .naval-egt-file-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .naval-egt-file-actions {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .naval-egt-activity-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+}
+
+/* ========================================
+   Utility Classes
+======================================== */
+
+.naval-egt-text-center {
+    text-align: center;
+}
+
+.naval-egt-text-left {
+    text-align: left;
+}
+
+.naval-egt-text-right {
+    text-align: right;
+}
+
+.naval-egt-mb-10 {
+    margin-bottom: 10px;
+}
+
+.naval-egt-mb-20 {
+    margin-bottom: 20px;
+}
+
+.naval-egt-mt-20 {
+    margin-top: 20px;
+}
+
+.naval-egt-hidden {
+    display: none;
+}
+
+.naval-egt-loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(42, 82, 152, 0.3);
+    border-top: 3px solid #2a5298;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ========================================
+   Print Styles
+======================================== */
+
+@media print {
+    .naval-egt-btn,
+    .naval-egt-ftp-toolbar,
+    .naval-egt-file-actions,
+    .naval-egt-modal {
+        display: none !important;
+    }
+    
+    .naval-egt-dashboard,
+    .naval-egt-area-riservata {
+        box-shadow: none;
+        border: none;
+    }
+}
