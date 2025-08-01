@@ -1,0 +1,1159 @@
+# Copyright (C) 2025 Naval EGT Team
+# This file is distributed under the same license as the Naval EGT - Area Riservata Clienti plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: Naval EGT - Area Riservata Clienti 1.0.0\n"
+"Report-Msgid-Bugs-To: https://naval.vjformazione.it/support\n"
+"Last-Translator: Naval EGT Team <tecnica@naval.it>\n"
+"Language-Team: Naval EGT Team <tecnica@naval.it>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2025-01-31 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: Naval EGT Plugin 1.0.0\n"
+"X-Domain: naval-egt\n"
+
+#. Plugin Name of the plugin
+msgid "Naval EGT - Area Riservata Clienti"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://naval.vjformazione.it"
+msgstr ""
+
+#. Description of the plugin
+msgid "Plugin completo per gestione area riservata clienti con integrazione Dropbox"
+msgstr ""
+
+#. Author of the plugin
+msgid "Naval EGT Team"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://naval.vjformazione.it"
+msgstr ""
+
+# Plugin principale
+#: naval-egt-plugin.php:45
+msgid "Non hai i permessi per accedere a questa pagina."
+msgstr ""
+
+# Menu e Navigation
+#: naval-egt-plugin.php:89 admin/views/admin-dashboard.php:25
+msgid "Naval EGT"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:32
+msgid "Impostazioni"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:25
+msgid "Panoramica"
+msgstr ""
+
+#: admin/views/tab-overview.php:15
+msgid "Gestione Utenti"
+msgstr ""
+
+#: admin/views/tab-files.php:20
+msgid "Gestione File"
+msgstr ""
+
+#: admin/views/tab-logs.php:25
+msgid "Log Attività"
+msgstr ""
+
+# Statistiche Dashboard
+#: admin/views/admin-dashboard.php:45
+msgid "Utenti Totali"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:46
+msgid "Registrati nell'area riservata"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:52
+msgid "Utenti Attivi"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:53
+msgid "Con accesso confermato"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:59
+msgid "In Attesa"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:60
+msgid "Registrazioni da attivare"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:66
+msgid "File Caricati"
+msgstr ""
+
+#: admin/views/admin-dashboard.php:67
+msgid "Totale su tutta la piattaforma"
+msgstr ""
+
+# Attività Recenti
+#: admin/views/tab-overview.php:25
+msgid "Attività Recenti"
+msgstr ""
+
+#: admin/views/tab-overview.php:85
+msgid "Nessuna attività recente."
+msgstr ""
+
+# Azioni Rapide
+#: admin/views/tab-overview.php:90
+msgid "Azioni Rapide"
+msgstr ""
+
+#: admin/views/tab-overview.php:95
+msgid "Gestisci Utenti"
+msgstr ""
+
+#: admin/views/tab-overview.php:100
+msgid "Impostazioni Dropbox"
+msgstr ""
+
+#: admin/views/tab-overview.php:108
+msgid "Aggiorna Statistiche"
+msgstr ""
+
+#: admin/views/tab-overview.php:113
+msgid "Esporta Utenti"
+msgstr ""
+
+# Configurazione Dropbox
+#: admin/views/tab-overview.php:125
+msgid "Dropbox configurato correttamente!"
+msgstr ""
+
+#: admin/views/tab-overview.php:126
+msgid "Il plugin è connesso al tuo account Dropbox e può gestire i file degli utenti."
+msgstr ""
+
+#: admin/views/tab-overview.php:129
+msgid "Test Connessione"
+msgstr ""
+
+#: admin/views/tab-overview.php:133
+msgid "Sincronizza Tutte le Cartelle"
+msgstr ""
+
+#: admin/views/tab-overview.php:138
+msgid "Dropbox non configurato"
+msgstr ""
+
+#: admin/views/tab-overview.php:139
+msgid "Per utilizzare tutte le funzionalità del plugin, è necessario configurare l'integrazione con Dropbox."
+msgstr ""
+
+#: admin/views/tab-overview.php:148
+msgid "App Key"
+msgstr ""
+
+#: admin/views/tab-overview.php:150
+msgid "Inserisci l'App Key dell'applicazione Dropbox"
+msgstr ""
+
+#: admin/views/tab-overview.php:155
+msgid "App Secret"
+msgstr ""
+
+#: admin/views/tab-overview.php:157
+msgid "Inserisci l'App Secret dell'applicazione Dropbox"
+msgstr ""
+
+#: admin/views/tab-overview.php:163
+msgid "Configura Dropbox"
+msgstr ""
+
+#: admin/views/tab-overview.php:168
+msgid "Come configurare Dropbox:"
+msgstr ""
+
+# Gestione Utenti
+#: admin/views/tab-users.php:35
+msgid "Aggiungi Utente"
+msgstr ""
+
+#: admin/views/tab-users.php:40
+msgid "Aggiorna"
+msgstr ""
+
+#: admin/views/tab-users.php:50
+msgid "Cerca Utenti:"
+msgstr ""
+
+#: admin/views/tab-users.php:55
+msgid "Status:"
+msgstr ""
+
+#: admin/views/tab-users.php:57
+msgid "Tutti gli status"
+msgstr ""
+
+#: admin/views/tab-users.php:58
+msgid "Solo Attivi"
+msgstr ""
+
+#: admin/views/tab-users.php:59
+msgid "Solo Sospesi"
+msgstr ""
+
+#: admin/views/tab-users.php:64
+msgid "Filtra"
+msgstr ""
+
+#: admin/views/tab-users.php:66
+msgid "Pulisci Filtri"
+msgstr ""
+
+#: admin/views/tab-users.php:75
+msgid "Esporta Excel"
+msgstr ""
+
+#: admin/views/tab-users.php:80
+msgid "Esporta CSV"
+msgstr ""
+
+#: admin/views/tab-users.php:85
+msgid "Esporta PDF"
+msgstr ""
+
+# Tabella Utenti
+#: admin/views/tab-users.php:120
+msgid "Codice"
+msgstr ""
+
+#: admin/views/tab-users.php:124
+msgid "Nome Completo"
+msgstr ""
+
+#: admin/views/tab-users.php:128
+msgid "Email"
+msgstr ""
+
+#: admin/views/tab-users.php:132
+msgid "Azienda"
+msgstr ""
+
+#: admin/views/tab-users.php:136
+msgid "Status"
+msgstr ""
+
+#: admin/views/tab-users.php:140
+msgid "Registrato"
+msgstr ""
+
+#: admin/views/tab-users.php:144
+msgid "Azioni"
+msgstr ""
+
+#: admin/views/tab-users.php:175
+msgid "Modifica"
+msgstr ""
+
+#: admin/views/tab-users.php:179
+msgid "Sospendi"
+msgstr ""
+
+#: admin/views/tab-users.php:179
+msgid "Attiva"
+msgstr ""
+
+#: admin/views/tab-users.php:183
+msgid "File"
+msgstr ""
+
+#: admin/views/tab-users.php:187
+msgid "Elimina"
+msgstr ""
+
+#: admin/views/tab-users.php:280
+msgid "Nessun utente trovato"
+msgstr ""
+
+#: admin/views/tab-users.php:282
+msgid "Nessun utente corrisponde ai filtri applicati."
+msgstr ""
+
+#: admin/views/tab-users.php:283
+msgid "Rimuovi Filtri"
+msgstr ""
+
+#: admin/views/tab-users.php:285
+msgid "Non ci sono ancora utenti registrati nel sistema."
+msgstr ""
+
+#: admin/views/tab-users.php:286
+msgid "Aggiungi Primo Utente"
+msgstr ""
+
+# Form Utente
+#: admin/views/tab-users.php:315
+msgid "Informazioni Personali"
+msgstr ""
+
+#: admin/views/tab-users.php:318
+msgid "Nome *"
+msgstr ""
+
+#: admin/views/tab-users.php:323
+msgid "Cognome *"
+msgstr ""
+
+#: admin/views/tab-users.php:330
+msgid "Email *"
+msgstr ""
+
+#: admin/views/tab-users.php:335
+msgid "Telefono"
+msgstr ""
+
+#: admin/views/tab-users.php:342
+msgid "Credenziali Accesso"
+msgstr ""
+
+#: admin/views/tab-users.php:345
+msgid "Username *"
+msgstr ""
+
+#: admin/views/tab-users.php:350
+msgid "Password"
+msgstr ""
+
+#: admin/views/tab-users.php:352
+msgid "Lascia vuoto per non modificare (solo in modifica)"
+msgstr ""
+
+#: admin/views/tab-users.php:357
+msgid "Informazioni Aziendali"
+msgstr ""
+
+#: admin/views/tab-users.php:360
+msgid "Ragione Sociale"
+msgstr ""
+
+#: admin/views/tab-users.php:365
+msgid "Partita IVA"
+msgstr ""
+
+#: admin/views/tab-users.php:367
+msgid "Obbligatoria se specificata la Ragione Sociale"
+msgstr ""
+
+#: admin/views/tab-users.php:372
+msgid "Impostazioni Account"
+msgstr ""
+
+#: admin/views/tab-users.php:377
+msgid "Sospeso"
+msgstr ""
+
+#: admin/views/tab-users.php:378
+msgid "Attivo"
+msgstr ""
+
+#: admin/views/tab-users.php:383
+msgid "Cartella Dropbox"
+msgstr ""
+
+#: admin/views/tab-users.php:385
+msgid "Percorso completo cartella Dropbox"
+msgstr ""
+
+#: admin/views/tab-users.php:392
+msgid "Salva"
+msgstr ""
+
+#: admin/views/tab-users.php:396
+msgid "Annulla"
+msgstr ""
+
+# Gestione File
+#: admin/views/tab-files.php:35
+msgid "Gestione File Globale"
+msgstr ""
+
+#: admin/views/tab-files.php:40
+msgid "Sincronizza Tutto"
+msgstr ""
+
+#: admin/views/tab-files.php:86
+msgid "Seleziona Utente per Gestione File"
+msgstr ""
+
+#: admin/views/tab-files.php:87
+msgid "Scegli un utente per visualizzare e gestire i suoi file su Dropbox"
+msgstr ""
+
+#: admin/views/tab-files.php:93
+msgid "Seleziona Utente:"
+msgstr ""
+
+#: admin/views/tab-files.php:95
+msgid "-- Seleziona un utente --"
+msgstr ""
+
+#: admin/views/tab-files.php:108
+msgid "Deseleziona"
+msgstr ""
+
+#: admin/views/tab-files.php:140
+msgid "Status Connessione Dropbox"
+msgstr ""
+
+#: admin/views/tab-files.php:144
+msgid "Connesso"
+msgstr ""
+
+#: admin/views/tab-files.php:152
+msgid "Cartella non collegata automaticamente"
+msgstr ""
+
+#: admin/views/tab-files.php:153
+msgid "Collega Cartella Dropbox"
+msgstr ""
+
+#: admin/views/tab-files.php:160
+msgid "Non Configurato"
+msgstr ""
+
+#: admin/views/tab-files.php:161
+msgid "Configura Dropbox nella sezione Panoramica per gestire i file"
+msgstr ""
+
+# Upload File
+#: admin/views/tab-files.php:168
+msgid "Carica File per"
+msgstr ""
+
+#: admin/views/tab-files.php:173
+msgid "Cartella di Destinazione:"
+msgstr ""
+
+#: admin/views/tab-files.php:175
+msgid "Cartella Principale"
+msgstr ""
+
+#: admin/views/tab-files.php:187
+msgid "Trascina i file qui o clicca per selezionare"
+msgstr ""
+
+#: admin/views/tab-files.php:188
+msgid "Supporta: PDF, DOC, XLS, immagini, file CAD"
+msgstr ""
+
+#: admin/views/tab-files.php:189
+msgid "Dimensione massima: 10MB per file"
+msgstr ""
+
+#: admin/views/tab-files.php:196
+msgid "Caricamento in corso..."
+msgstr ""
+
+#: admin/views/tab-files.php:201
+msgid "Carica File Selezionati"
+msgstr ""
+
+# Lista File
+#: admin/views/tab-files.php:218
+msgid "Aggiorna Lista"
+msgstr ""
+
+#: admin/views/tab-files.php:268
+msgid "Nessun file presente"
+msgstr ""
+
+#: admin/views/tab-files.php:269
+msgid "Questo utente non ha ancora caricato file o la sincronizzazione Dropbox non è ancora stata effettuata."
+msgstr ""
+
+#: admin/views/tab-files.php:272
+msgid "Sincronizza con Dropbox"
+msgstr ""
+
+# Struttura Cartelle
+#: admin/views/tab-files.php:281
+msgid "Struttura Cartelle Dropbox"
+msgstr ""
+
+#: admin/views/tab-files.php:289
+msgid "Cartella Principale"
+msgstr ""
+
+#: admin/views/tab-files.php:307
+msgid "Seleziona un utente per iniziare"
+msgstr ""
+
+#: admin/views/tab-files.php:308
+msgid "Scegli un utente dal menu dropdown sopra per visualizzare e gestire i suoi file su Dropbox."
+msgstr ""
+
+#: admin/views/tab-files.php:312
+msgid "Tipi di File Supportati"
+msgstr ""
+
+# Log Attività
+#: admin/views/tab-logs.php:45
+msgid "Log Attività Sistema"
+msgstr ""
+
+#: admin/views/tab-logs.php:50
+msgid "Esporta Log"
+msgstr ""
+
+#: admin/views/tab-logs.php:55
+msgid "Svuota Log"
+msgstr ""
+
+#: admin/views/tab-logs.php:75
+msgid "Attività Ultimi 30 Giorni"
+msgstr ""
+
+#: admin/views/tab-logs.php:95
+msgid "Attività Giornaliera (Ultimi 7 Giorni)"
+msgstr ""
+
+#: admin/views/tab-logs.php:112
+msgid "Utenti Più Attivi"
+msgstr ""
+
+# Filtri Log
+#: admin/views/tab-logs.php:135
+msgid "Utente:"
+msgstr ""
+
+#: admin/views/tab-logs.php:137
+msgid "Tutti gli utenti"
+msgstr ""
+
+#: admin/views/tab-logs.php:148
+msgid "Azione:"
+msgstr ""
+
+#: admin/views/tab-logs.php:150
+msgid "Tutte le azioni"
+msgstr ""
+
+#: admin/views/tab-logs.php:159
+msgid "Nome File:"
+msgstr ""
+
+#: admin/views/tab-logs.php:160
+msgid "Cerca per nome file"
+msgstr ""
+
+#: admin/views/tab-logs.php:166
+msgid "Da Data:"
+msgstr ""
+
+#: admin/views/tab-logs.php:172
+msgid "A Data:"
+msgstr ""
+
+#: admin/views/tab-logs.php:179
+msgid "Filtra"
+msgstr ""
+
+#: admin/views/tab-logs.php:184
+msgid "Pulisci"
+msgstr ""
+
+# Quick Filters
+#: admin/views/tab-logs.php:192
+msgid "Filtri Rapidi:"
+msgstr ""
+
+#: admin/views/tab-logs.php:195
+msgid "Oggi"
+msgstr ""
+
+#: admin/views/tab-logs.php:198
+msgid "Ultimi 7 giorni"
+msgstr ""
+
+#: admin/views/tab-logs.php:201
+msgid "Ultimi 30 giorni"
+msgstr ""
+
+#: admin/views/tab-logs.php:204
+msgid "Solo Login"
+msgstr ""
+
+#: admin/views/tab-logs.php:207
+msgid "Solo Upload"
+msgstr ""
+
+#: admin/views/tab-logs.php:210
+msgid "Solo Download"
+msgstr ""
+
+# Tabella Log
+#: admin/views/tab-logs.php:242
+msgid "Data/Ora"
+msgstr ""
+
+#: admin/views/tab-logs.php:246
+msgid "Utente"
+msgstr ""
+
+#: admin/views/tab-logs.php:250
+msgid "Azione"
+msgstr ""
+
+#: admin/views/tab-logs.php:254
+msgid "File"
+msgstr ""
+
+#: admin/views/tab-logs.php:258
+msgid "Dimensione"
+msgstr ""
+
+#: admin/views/tab-logs.php:262
+msgid "IP"
+msgstr ""
+
+#: admin/views/tab-logs.php:266
+msgid "Dettagli"
+msgstr ""
+
+#: admin/views/tab-logs.php:350
+msgid "Nessun log trovato"
+msgstr ""
+
+#: admin/views/tab-logs.php:352
+msgid "Nessun log corrisponde ai filtri applicati."
+msgstr ""
+
+#: admin/views/tab-logs.php:355
+msgid "Non ci sono ancora log di attività registrati nel sistema."
+msgstr ""
+
+# Frontend - Area Riservata
+#: public/views/area-riservata.php:25
+msgid "AREA RISERVATA NAVAL EGT"
+msgstr ""
+
+#: public/views/area-riservata.php:26
+msgid "Accedi con le tue credenziali per utilizzare l'area riservata dedicata ai clienti Naval EGT"
+msgstr ""
+
+#: public/views/area-riservata.php:31
+msgid "Assistenza Tecnica"
+msgstr ""
+
+#: public/views/area-riservata.php:35
+msgid "Per problemi di accesso, richieste di registrazione o supporto tecnico"
+msgstr ""
+
+# Form Login
+#: public/views/area-riservata.php:43
+msgid "Accedi al tuo account"
+msgstr ""
+
+#: public/views/area-riservata.php:49
+msgid "Email o Username"
+msgstr ""
+
+#: public/views/area-riservata.php:54
+msgid "Password"
+msgstr ""
+
+#: public/views/area-riservata.php:61
+msgid "Ricordami per i prossimi accessi"
+msgstr ""
+
+#: public/views/area-riservata.php:65
+msgid "Accedi all'Area Riservata"
+msgstr ""
+
+#: public/views/area-riservata.php:70
+msgid "Account sicuro:"
+msgstr ""
+
+#: public/views/area-riservata.php:70
+msgid "Non hai un account?"
+msgstr ""
+
+#: public/views/area-riservata.php:71
+msgid "Contatta il nostro staff per la registrazione"
+msgstr ""
+
+# Form Registrazione
+#: public/views/area-riservata.php:80
+msgid "Richiesta Registrazione"
+msgstr ""
+
+#: public/views/area-riservata.php:81
+msgid "Compila il modulo per richiedere l'accesso all'area riservata"
+msgstr ""
+
+#: public/views/area-riservata.php:147
+msgid "Conferma Password *"
+msgstr ""
+
+#: public/views/area-riservata.php:158
+msgid "Opzionale - inserire solo se si tratta di un'azienda"
+msgstr ""
+
+#: public/views/area-riservata.php:170
+msgid "Accetto la"
+msgstr ""
+
+#: public/views/area-riservata.php:170
+msgid "Privacy Policy"
+msgstr ""
+
+#: public/views/area-riservata.php:175
+msgid "Invia richiesta di registrazione"
+msgstr ""
+
+#: public/views/area-riservata.php:179
+msgid "Torna al login"
+msgstr ""
+
+# Dashboard Utente
+#: public/views/area-riservata.php:190
+msgid "Benvenuto,"
+msgstr ""
+
+#: public/views/area-riservata.php:191
+msgid "Codice utente:"
+msgstr ""
+
+#: public/views/area-riservata.php:194
+msgid "Azienda:"
+msgstr ""
+
+#: public/views/area-riservata.php:201
+msgid "Aggiorna"
+msgstr ""
+
+#: public/views/area-riservata.php:204
+msgid "Logout"
+msgstr ""
+
+#: public/views/area-riservata.php:213
+msgid "I tuoi file"
+msgstr ""
+
+#: public/views/area-riservata.php:216
+msgid "Carica file"
+msgstr ""
+
+#: public/views/area-riservata.php:230
+msgid "Attività recente"
+msgstr ""
+
+# Messaggi di Sistema
+#: includes/class-naval-egt-user-manager.php:85
+msgid "Il nome è obbligatorio"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:89
+msgid "Il cognome è obbligatorio"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:93
+msgid "Email non valida"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:97
+msgid "Lo username è obbligatorio"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:101
+msgid "La password è obbligatoria"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:106
+msgid "Email già esistente"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:111
+msgid "Username già esistente"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:116
+msgid "La partita IVA è obbligatoria se si specifica la ragione sociale"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:345
+msgid "Utente non trovato"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:351
+msgid "Account non attivo. Contatta l'amministratore."
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:355
+msgid "Password non corretta"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:371
+msgid "Login effettuato con successo"
+msgstr ""
+
+#: includes/class-naval-egt-user-manager.php:386
+msgid "Logout effettuato con successo"
+msgstr ""
+
+# File Manager
+#: includes/class-naval-egt-file-manager.php:45
+msgid "Errore durante il caricamento del file"
+msgstr ""
+
+#: includes/class-naval-egt-file-manager.php:52
+msgid "File troppo grande. Dimensione massima:"
+msgstr ""
+
+#: includes/class-naval-egt-file-manager.php:58
+msgid "Tipo di file non consentito. Estensioni permesse:"
+msgstr ""
+
+#: includes/class-naval-egt-file-manager.php:63
+msgid "Nome file non valido"
+msgstr ""
+
+#: includes/class-naval-egt-file-manager.php:89
+msgid "File caricato con successo"
+msgstr ""
+
+#: includes/class-naval-egt-file-manager.php:140
+msgid "File eliminato con successo"
+msgstr ""
+
+# Dropbox
+#: includes/class-naval-egt-dropbox.php:95
+msgid "Configurazione Dropbox mancante"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:125
+msgid "Errore di connessione:"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:130
+msgid "Errore OAuth:"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:139
+msgid "Token ottenuto con successo"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:142
+msgid "Risposta OAuth non valida"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:180
+msgid "Dropbox non configurato"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:205
+msgid "Token scaduto, riautenticazione necessaria"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:285
+msgid "Impossibile leggere il file"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:310
+msgid "Errore di upload:"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:318
+msgid "Errore di upload"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:335
+msgid "Errore di download:"
+msgstr ""
+
+#: includes/class-naval-egt-dropbox.php:348
+msgid "File non trovato o errore di download"
+msgstr ""
+
+# Email
+#: includes/class-naval-egt-email.php:135
+msgid "Benvenuto nell'Area Riservata Naval EGT"
+msgstr ""
+
+#: includes/class-naval-egt-email.php:150
+msgid "Nuova registrazione utente - Naval EGT"
+msgstr ""
+
+#: includes/class-naval-egt-email.php:175
+msgid "Account attivato - Naval EGT Area Riservata"
+msgstr ""
+
+#: includes/class-naval-egt-email.php:205
+msgid "Reset Password - Naval EGT Area Riservata"
+msgstr ""
+
+#: includes/class-naval-egt-email.php:340
+msgid "Test Email Naval EGT Plugin"
+msgstr ""
+
+#: includes/class-naval-egt-email.php:341
+msgid "Se ricevi questa email, la configurazione email del plugin Naval EGT funziona correttamente."
+msgstr ""
+
+# JavaScript Strings
+#: admin/js/admin.js:25
+msgid "Sei sicuro di voler eliminare questo elemento?"
+msgstr ""
+
+#: admin/js/admin.js:26
+msgid "Caricamento..."
+msgstr ""
+
+#: admin/js/admin.js:27
+msgid "Si è verificato un errore"
+msgstr ""
+
+#: public/js/public.js:45
+msgid "Credenziali non valide"
+msgstr ""
+
+#: public/js/public.js:47
+msgid "Errore durante il caricamento"
+msgstr ""
+
+# Export
+#: includes/class-naval-egt-export.php:85
+msgid "Codice Utente"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:86
+msgid "Nome"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:87
+msgid "Cognome"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:90
+msgid "Username"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:93
+msgid "Partita IVA"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:95
+msgid "Ultimo Accesso"
+msgstr ""
+
+#: includes/class-naval-egt-export.php:96
+msgid "Data Registrazione"
+msgstr ""
+
+# Activity Logger
+#: includes/class-naval-egt-activity-logger.php:195
+msgid "Log più vecchi di"
+msgstr ""
+
+#: includes/class-naval-egt-activity-logger.php:195
+msgid "giorni"
+msgstr ""
+
+#: includes/class-naval-egt-activity-logger.php:208
+msgid "Eliminati tutti i"
+msgstr ""
+
+#: includes/class-naval-egt-activity-logger.php:208
+msgid "log"
+msgstr ""
+
+# Azioni Utente
+msgid "Login"
+msgstr ""
+
+msgid "Logout"
+msgstr ""
+
+msgid "Upload File"
+msgstr ""
+
+msgid "Download File"
+msgstr ""
+
+msgid "Registrazione"
+msgstr ""
+
+msgid "Upload Admin"
+msgstr ""
+
+msgid "Azione Admin"
+msgstr ""
+
+# Stati
+msgid "ATTIVO"
+msgstr ""
+
+msgid "SOSPESO"
+msgstr ""
+
+msgid "Mai"
+msgstr ""
+
+msgid "Sistema"
+msgstr ""
+
+msgid "Utente eliminato"
+msgstr ""
+
+# Formati File
+msgid "Documenti PDF"
+msgstr ""
+
+msgid "Microsoft Word"
+msgstr ""
+
+msgid "Microsoft Excel"
+msgstr ""
+
+msgid "Immagini"
+msgstr ""
+
+msgid "File CAD"
+msgstr ""
+
+msgid "Archivi Compressi"
+msgstr ""
+
+# Unità di Misura
+msgid "B"
+msgstr ""
+
+msgid "KB"
+msgstr ""
+
+msgid "MB"
+msgstr ""
+
+msgid "GB"
+msgstr ""
+
+msgid "elementi"
+msgstr ""
+
+msgid "attività"
+msgstr ""
+
+# Conferme e Dialoghi
+msgid "Sei sicuro?"
+msgstr ""
+
+msgid "Questa azione non può essere annullata."
+msgstr ""
+
+msgid "Conferma eliminazione"
+msgstr ""
+
+msgid "Operazione completata con successo"
+msgstr ""
+
+msgid "Si è verificato un errore. Riprova."
+msgstr ""
+
+msgid "Errore di connessione"
+msgstr ""
+
+msgid "Accesso richiesto"
+msgstr ""
+
+msgid "Permessi insufficienti"
+msgstr ""
+
+# Date e Tempo
+msgid "oggi"
+msgstr ""
+
+msgid "ieri"
+msgstr ""
+
+msgid "giorni fa"
+msgstr ""
+
+msgid "ore fa"
+msgstr ""
+
+msgid "minuti fa"
+msgstr ""
+
+msgid "adesso"
+msgstr ""
+
+# Navigazione
+msgid "Precedente"
+msgstr ""
+
+msgid "Successivo"
+msgstr ""
+
+msgid "Prima pagina"
+msgstr ""
+
+msgid "Ultima pagina"
+msgstr ""
+
+msgid "Pagina"
+msgstr ""
+
+msgid "di"
+msgstr ""
+
+# Varie
+msgid "Cerca..."
+msgstr ""
+
+msgid "Nessun risultato"
+msgstr ""
+
+msgid "Carica altro"
+msgstr ""
+
+msgid "Mostra tutto"
+msgstr ""
+
+msgid "Nascondi"
+msgstr ""
+
+msgid "Chiudi"
+msgstr ""
+
+msgid "Apri"
+msgstr ""
+
+msgid "Scarica"
+msgstr ""
+
+msgid "Copia"
+msgstr ""
+
+msgid "Condividi"
+msgstr ""
+
+msgid "Stampa"
+msgstr ""
+
+msgid "Aiuto"
+msgstr ""
+
+msgid "Informazioni"
+msgstr ""
+
+msgid "Versione"
+msgstr ""
+
+msgid "Copyright"
+msgstr ""
+
+msgid "Tutti i diritti riservati"
+msgstr ""
