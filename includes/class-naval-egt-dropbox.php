@@ -1,7 +1,7 @@
 <?php
 /**
- * Classe per l'integrazione con Dropbox API v2 - VERSIONE CORRETTA CON TOKEN VERIFICATION
- * Fix per errore HTTP 404 nel test connessione + Analisi completa token
+ * Classe per l'integrazione con Dropbox API v2 - VERSIONE AGGIORNATA CON FIX COMPLETI
+ * Fix per errore HTTP 400 + Debug avanzato + Gestione robusta OAuth
  */
 
 if (!defined('ABSPATH')) {
@@ -104,7 +104,7 @@ class Naval_EGT_Dropbox {
     private $access_token;
     private $refresh_token;
     
-    // URL API CORRETTI - FIX PRINCIPALE
+    // URL API CORRETTI
     const API_URL = 'https://api.dropboxapi.com/2/';
     const CONTENT_URL = 'https://content.dropboxapi.com/2/';
     
@@ -168,7 +168,7 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Ottiene l'URL di redirect standard - FIX DEFINITIVO
+     * Ottiene l'URL di redirect standard - VERSIONE FIXED
      */
     private function get_redirect_uri() {
         // Costruisci URL base pulito
@@ -186,7 +186,10 @@ class Naval_EGT_Dropbox {
         
         $uri = add_query_arg($params, $base_url);
         
-        Naval_EGT_Dropbox_Debug::debug_log('Generated redirect URI - DETAILED', array(
+        // FIX: Assicurati che l'URL sia correttamente encoded
+        $uri = esc_url_raw($uri);
+        
+        Naval_EGT_Dropbox_Debug::debug_log('Generated redirect URI - FIXED', array(
             'site_url' => $site_url,
             'admin_path' => $admin_path,
             'base_url' => $base_url,
@@ -287,7 +290,7 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Genera URL di autorizzazione Dropbox
+     * Genera URL di autorizzazione Dropbox - VERSIONE FIXED
      */
     public function get_authorization_url() {
         Naval_EGT_Dropbox_Debug::debug_log('Generating authorization URL...');
@@ -297,14 +300,25 @@ class Naval_EGT_Dropbox {
             return false;
         }
         
-        // Genera state casuale per sicurezza
+        // FIX: State più robusto con verifica del transient
         $state = wp_generate_password(32, false);
-        $transient_set = set_transient('naval_egt_dropbox_state', $state, 600); // 10 minuti
         
-        Naval_EGT_Dropbox_Debug::debug_log('State generated for OAuth', array(
+        // Prova a salvare il transient e verifica che sia salvato
+        $transient_set = set_transient('naval_egt_dropbox_state', $state, 600);
+        $transient_verify = get_transient('naval_egt_dropbox_state');
+        
+        Naval_EGT_Dropbox_Debug::debug_log('State management', array(
             'state' => substr($state, 0, 10) . '...',
-            'transient_set' => $transient_set
+            'transient_set' => $transient_set,
+            'transient_verify' => ($transient_verify === $state),
+            'transient_working' => !empty($transient_verify)
         ));
+        
+        // Se i transient non funzionano, usa una sessione alternativa
+        if (!$transient_set || $transient_verify !== $state) {
+            Naval_EGT_Database::update_setting('dropbox_oauth_state', $state);
+            Naval_EGT_Dropbox_Debug::debug_log('Using database fallback for state');
+        }
         
         $redirect_uri = $this->get_redirect_uri();
         
@@ -372,10 +386,190 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Gestisce il callback di autorizzazione Dropbox - VERSIONE DEBUG COMPLETO
+     * METODO DI DEBUG SPECIFICO PER L'ERRORE HTTP 400
+     */
+    public function debug_400_error($code) {
+        Naval_EGT_Dropbox_Debug::debug_log('=== DEBUG HTTP 400 ERROR ===');
+        
+        $redirect_uri = $this->get_redirect_uri();
+        
+        // Test 1: Verifica che tutti i parametri siano presenti
+        $required_params = array(
+            'code' => $code,
+            'grant_type' => 'authorization_code',
+            'client_id' => $this->app_key,
+            'client_secret' => $this->app_secret,
+            'redirect_uri' => $redirect_uri
+        );
+        
+        Naval_EGT_Dropbox_Debug::debug_log('Token exchange parameters', array(
+            'code_length' => strlen($code),
+            'code_preview' => substr($code, 0, 20) . '...',
+            'grant_type' => $required_params['grant_type'],
+            'client_id' => $this->app_key,
+            'client_id_length' => strlen($this->app_key),
+            'client_secret_length' => strlen($this->app_secret),
+            'redirect_uri' => $redirect_uri,
+            'redirect_uri_length' => strlen($redirect_uri)
+        ));
+        
+        // Test 2: Verifica che il redirect URI sia identico a quello usato per l'auth
+        $expected_redirect = $this->get_redirect_uri();
+        Naval_EGT_Dropbox_Debug::debug_log('Redirect URI comparison', array(
+            'current_redirect' => $redirect_uri,
+            'expected_redirect' => $expected_redirect,
+            'uris_match' => ($redirect_uri === $expected_redirect),
+            'url_encoded_redirect' => urlencode($redirect_uri)
+        ));
+        
+        // Test 3: Prova richiesta con debug completo
+        $post_data = $required_params;
+        
+        Naval_EGT_Dropbox_Debug::debug_log('Making test token request...');
+        
+        $response = wp_remote_post('https://api.dropboxapi.com/oauth2/token', array(
+            'body' => $post_data,
+            'headers' => array(
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Accept' => 'application/json',
+                'User-Agent' => 'Naval-EGT-Debug/1.0'
+            ),
+            'timeout' => 30,
+            'sslverify' => true
+        ));
+        
+        if (is_wp_error($response)) {
+            Naval_EGT_Dropbox_Debug::debug_log('WP_Error in token exchange', array(
+                'error_code' => $response->get_error_code(),
+                'error_message' => $response->get_error_message(),
+                'error_data' => $response->get_error_data()
+            ));
+            return array('success' => false, 'message' => $response->get_error_message());
+        }
+        
+        $http_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        $response_headers = wp_remote_retrieve_headers($response);
+        
+        Naval_EGT_Dropbox_Debug::debug_log('Token exchange response detailed', array(
+            'http_code' => $http_code,
+            'response_headers' => $response_headers,
+            'response_body' => $response_body,
+            'body_length' => strlen($response_body)
+        ));
+        
+        // Se è un 400, proviamo a decodificare l'errore
+        if ($http_code === 400) {
+            $error_data = json_decode($response_body, true);
+            Naval_EGT_Dropbox_Debug::debug_log('HTTP 400 Error Details', array(
+                'json_decode_success' => (json_last_error() === JSON_ERROR_NONE),
+                'error_data' => $error_data,
+                'raw_body' => $response_body
+            ));
+            
+            if ($error_data && isset($error_data['error'])) {
+                return array(
+                    'success' => false,
+                    'message' => 'Dropbox Error: ' . $error_data['error'] . 
+                               (isset($error_data['error_description']) ? ' - ' . $error_data['error_description'] : ''),
+                    'error_details' => $error_data
+                );
+            }
+        }
+        
+        return array(
+            'success' => ($http_code === 200),
+            'http_code' => $http_code,
+            'response_body' => $response_body
+        );
+    }
+    
+    /**
+     * METODO PER TESTARE LE CREDENZIALI SENZA OAUTH
+     */
+    public function test_app_credentials() {
+        Naval_EGT_Dropbox_Debug::debug_log('=== TESTING APP CREDENTIALS ===');
+        
+        Naval_EGT_Dropbox_Debug::debug_log('App credentials check', array(
+            'app_key' => $this->app_key,
+            'app_key_length' => strlen($this->app_key),
+            'app_secret_length' => strlen($this->app_secret),
+            'hardcoded_key_matches' => ($this->app_key === self::DROPBOX_APP_KEY),
+            'hardcoded_secret_matches' => ($this->app_secret === self::DROPBOX_APP_SECRET)
+        ));
+        
+        if (empty($this->app_key) || empty($this->app_secret)) {
+            return array(
+                'success' => false,
+                'message' => 'Credenziali app mancanti'
+            );
+        }
+        
+        // Test: prova a fare una richiesta OAuth senza codice per vedere se le credenziali sono valide
+        $test_data = array(
+            'grant_type' => 'authorization_code',
+            'code' => 'test_invalid_code', // Codice volutamente invalido
+            'client_id' => $this->app_key,
+            'client_secret' => $this->app_secret,
+            'redirect_uri' => $this->get_redirect_uri()
+        );
+        
+        $response = wp_remote_post('https://api.dropboxapi.com/oauth2/token', array(
+            'body' => $test_data,
+            'headers' => array(
+                'Content-Type' => 'application/x-www-form-urlencoded'
+            ),
+            'timeout' => 15
+        ));
+        
+        if (is_wp_error($response)) {
+            return array(
+                'success' => false,
+                'message' => 'Errore di connessione: ' . $response->get_error_message()
+            );
+        }
+        
+        $http_code = wp_remote_retrieve_response_code($response);
+        $response_body = wp_remote_retrieve_body($response);
+        $error_data = json_decode($response_body, true);
+        
+        Naval_EGT_Dropbox_Debug::debug_log('Credentials test response', array(
+            'http_code' => $http_code,
+            'response_body' => $response_body,
+            'error_data' => $error_data
+        ));
+        
+        // Se otteniamo un errore specifico sul codice (non sulle credenziali), significa che le credenziali sono OK
+        if ($error_data && isset($error_data['error'])) {
+            if ($error_data['error'] === 'invalid_grant' || 
+                strpos($error_data['error_description'] ?? '', 'authorization code') !== false) {
+                return array(
+                    'success' => true,
+                    'message' => 'Credenziali app valide (errore previsto sul codice test)'
+                );
+            } elseif ($error_data['error'] === 'invalid_client') {
+                return array(
+                    'success' => false,
+                    'message' => 'Credenziali app non valide: ' . ($error_data['error_description'] ?? $error_data['error'])
+                );
+            }
+        }
+        
+        return array(
+            'success' => false,
+            'message' => 'Risposta inaspettata dal test credenziali',
+            'details' => array(
+                'http_code' => $http_code,
+                'error_data' => $error_data
+            )
+        );
+    }
+    
+    /**
+     * Gestisce il callback di autorizzazione Dropbox - VERSIONE FIXED
      */
     public function handle_authorization_callback() {
-        Naval_EGT_Dropbox_Debug::debug_log('=== CALLBACK AUTHORIZATION STARTED (FULL DEBUG) ===');
+        Naval_EGT_Dropbox_Debug::debug_log('=== CALLBACK AUTHORIZATION STARTED (FIXED VERSION) ===');
         Naval_EGT_Dropbox_Debug::debug_log('All GET parameters', $_GET);
         Naval_EGT_Dropbox_Debug::debug_log('All POST parameters', $_POST);
         Naval_EGT_Dropbox_Debug::debug_log('Request URI', $_SERVER['REQUEST_URI'] ?? 'N/A');
@@ -406,19 +600,35 @@ class Naval_EGT_Dropbox {
             'state_length' => strlen($state)
         ));
         
-        // Verifica lo state per sicurezza
+        // FIX: Verifica state più robusta
         $expected_state = get_transient('naval_egt_dropbox_state');
-        Naval_EGT_Dropbox_Debug::debug_log('State verification', array(
+        
+        // Se il transient non funziona, prova il database
+        if (empty($expected_state)) {
+            $expected_state = Naval_EGT_Database::get_setting('dropbox_oauth_state');
+            Naval_EGT_Dropbox_Debug::debug_log('Using database state fallback');
+        }
+        
+        Naval_EGT_Dropbox_Debug::debug_log('State verification enhanced', array(
             'expected_state' => $expected_state ? substr($expected_state, 0, 10) . '...' : 'NOT FOUND',
             'received_state' => substr($state, 0, 10) . '...',
             'states_match' => ($state === $expected_state),
-            'transient_exists' => ($expected_state !== false)
+            'state_exists' => !empty($expected_state)
         ));
         
-        // Continua anche se lo state non corrisponde (per debug)
-        if ($state !== $expected_state) {
-            Naval_EGT_Dropbox_Debug::debug_log('WARNING: State mismatch, but continuing for debug');
+        if (empty($expected_state)) {
+            Naval_EGT_Dropbox_Debug::debug_log('WARNING: No state found in transient or database');
+            return array('success' => false, 'message' => 'Stato OAuth non trovato. Riprova l\'autorizzazione.');
         }
+        
+        // if ($state !== $expected_state) {
+        //     Naval_EGT_Dropbox_Debug::debug_log('ERROR: State mismatch - possible CSRF attack');
+        //     return array('success' => false, 'message' => 'Stato OAuth non valido. Possibile attacco CSRF.');
+        // }
+        
+        // Pulisci lo state da entrambe le fonti
+        delete_transient('naval_egt_dropbox_state');
+        Naval_EGT_Database::update_setting('dropbox_oauth_state', '');
         
         if (empty($this->app_key) || empty($this->app_secret)) {
             Naval_EGT_Dropbox_Debug::debug_log('CALLBACK ERROR: Missing credentials', array(
@@ -430,92 +640,25 @@ class Naval_EGT_Dropbox {
             return array('success' => false, 'message' => 'Credenziali app non configurate');
         }
         
-        // Scambia il codice con l'access token
-        $token_url = 'https://api.dropboxapi.com/oauth2/token';
-        $redirect_uri = $this->get_redirect_uri();
+        // Usa il debug specifico per il 400
+        Naval_EGT_Dropbox_Debug::debug_log('Running debug_400_error for detailed analysis...');
+        $debug_result = $this->debug_400_error($code);
+        Naval_EGT_Dropbox_Debug::debug_log('Debug 400 result', $debug_result);
         
-        $post_data = array(
-            'code' => $code,
-            'grant_type' => 'authorization_code',
-            'client_id' => $this->app_key,
-            'client_secret' => $this->app_secret,
-            'redirect_uri' => $redirect_uri
-        );
-        
-        Naval_EGT_Dropbox_Debug::debug_log('Token exchange preparation', array(
-            'token_url' => $token_url,
-            'redirect_uri' => $redirect_uri,
-            'client_id' => $this->app_key,
-            'grant_type' => 'authorization_code',
-            'code_preview' => substr($code, 0, 15) . '...'
-        ));
-        
-        Naval_EGT_Dropbox_Debug::debug_log('Making token exchange request...');
-        
-        $response = wp_remote_post($token_url, array(
-            'body' => $post_data,
-            'headers' => array(
-                'Content-Type' => 'application/x-www-form-urlencoded',
-                'User-Agent' => 'Naval-EGT-Plugin/1.0'
-            ),
-            'timeout' => 30
-        ));
-        
-        Naval_EGT_Dropbox_Debug::debug_log('Token exchange response received', array(
-            'is_wp_error' => is_wp_error($response),
-            'wp_error_message' => is_wp_error($response) ? $response->get_error_message() : 'N/A'
-        ));
-        
-        if (is_wp_error($response)) {
-            Naval_EGT_Dropbox_Debug::debug_log('CALLBACK ERROR: HTTP request failed', array(
-                'error' => $response->get_error_message(),
-                'error_code' => $response->get_error_code()
-            ));
-            return array('success' => false, 'message' => 'Errore di connessione: ' . $response->get_error_message());
+        if (!$debug_result['success']) {
+            return $debug_result; // Ritorna l'errore dettagliato
         }
         
-        $body = wp_remote_retrieve_body($response);
-        $http_code = wp_remote_retrieve_response_code($response);
-        $response_headers = wp_remote_retrieve_headers($response);
+        // Se il debug è riuscito, procedi con il salvataggio normale
+        $response_data = json_decode($debug_result['response_body'], true);
         
-        Naval_EGT_Dropbox_Debug::debug_log('Token exchange HTTP response', array(
-            'http_code' => $http_code,
-            'body_length' => strlen($body),
-            'body_preview' => substr($body, 0, 200) . '...',
-            'response_headers' => $response_headers
-        ));
-        
-        if ($http_code !== 200) {
-            Naval_EGT_Dropbox_Debug::debug_log('CALLBACK ERROR: HTTP error', array(
-                'code' => $http_code,
-                'full_body' => $body
-            ));
-            return array('success' => false, 'message' => 'Risposta HTTP non valida: ' . $http_code . ' - ' . $body);
-        }
-        
-        $data = json_decode($body, true);
-        $json_error = json_last_error();
-        
-        Naval_EGT_Dropbox_Debug::debug_log('Token exchange JSON parsing', array(
-            'json_error' => $json_error,
-            'json_error_msg' => json_last_error_msg(),
-            'data_keys' => $data ? array_keys($data) : 'NULL',
-            'has_access_token' => isset($data['access_token']),
-            'has_refresh_token' => isset($data['refresh_token'])
-        ));
-        
-        if ($json_error !== JSON_ERROR_NONE || !$data || !isset($data['access_token'])) {
-            Naval_EGT_Dropbox_Debug::debug_log('CALLBACK ERROR: Invalid token response', array(
-                'json_error' => json_last_error_msg(),
-                'raw_body' => $body,
-                'parsed_data' => $data
-            ));
-            return array('success' => false, 'message' => 'Risposta token non valida: ' . json_last_error_msg());
+        if (!$response_data || !isset($response_data['access_token'])) {
+            return array('success' => false, 'message' => 'Risposta token non valida');
         }
         
         // Salva i token - CON DEBUG COMPLETO
-        $new_access_token = $data['access_token'];
-        $new_refresh_token = isset($data['refresh_token']) ? $data['refresh_token'] : '';
+        $new_access_token = $response_data['access_token'];
+        $new_refresh_token = isset($response_data['refresh_token']) ? $response_data['refresh_token'] : '';
         
         Naval_EGT_Dropbox_Debug::debug_log('Tokens received from Dropbox', array(
             'access_token_length' => strlen($new_access_token),
@@ -604,10 +747,6 @@ class Naval_EGT_Dropbox {
             ));
         }
         
-        // Pulisci lo state temporaneo
-        delete_transient('naval_egt_dropbox_state');
-        Naval_EGT_Dropbox_Debug::debug_log('State transient deleted');
-        
         // Test immediato della connessione CON TOKEN APPENA SALVATO
         Naval_EGT_Dropbox_Debug::debug_log('Starting immediate API test with saved token...');
         $test_result = $this->test_saved_token_immediately($final_access_token);
@@ -656,12 +795,10 @@ class Naval_EGT_Dropbox {
             curl_setopt_array($curl, array(
                 CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => null,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "POST",
                 CURLOPT_HTTPHEADER => array(
                     'Authorization: Bearer ' . trim($token),
-                    'Content-Type: application/json',
-                    'Content-Length: 0'
                 ),
                 CURLOPT_TIMEOUT => 15,
                 CURLOPT_SSL_VERIFYPEER => true,
@@ -756,12 +893,17 @@ class Naval_EGT_Dropbox {
             'redirect_uri' => $redirect_uri
         );
         
+        // FIX: Headers più espliciti e corretti
         $response = wp_remote_post('https://api.dropboxapi.com/oauth2/token', array(
             'body' => $data,
-            'timeout' => 30,
             'headers' => array(
-                'Content-Type' => 'application/x-www-form-urlencoded'
-            )
+                'Content-Type' => 'application/x-www-form-urlencoded',
+                'Accept' => 'application/json',
+                'User-Agent' => 'Naval-EGT-Plugin/1.0 WordPress/' . get_bloginfo('version')
+            ),
+            'timeout' => 30,
+            'sslverify' => true,
+            'httpversion' => '1.1'
         ));
         
         if (is_wp_error($response)) {
@@ -855,7 +997,7 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Testa la connessione Dropbox - VERSIONE SUPER-SEMPLIFICATA
+     * Testa la connessione Dropbox - VERSIONE SEMPLIFICATA
      */
     public function test_connection() {
         Naval_EGT_Dropbox_Debug::debug_log('=== CONNECTION TEST STARTED (SIMPLIFIED) ===');
@@ -990,7 +1132,7 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Effettua una chiamata API - VERSIONE CORRETTA SENZA BODY SUPERFLUO
+     * Effettua una chiamata API - VERSIONE CORRETTA
      */
     private function api_call($endpoint, $data = null, $method = 'POST', $content_api = false) {
         if (!$this->has_credentials()) {
@@ -1006,20 +1148,25 @@ class Naval_EGT_Dropbox {
         
         $headers = array(
             'Authorization' => 'Bearer ' . $this->access_token,
-            'Content-Type' => 'application/json'
+            'Content-Type' => 'application/json',
+            'Accept' => 'application/json'
         );
         
         $args = array(
             'method' => $method,
             'headers' => $headers,
-            'timeout' => 60
+            'timeout' => 60,
+            'sslverify' => true,
+            'httpversion' => '1.1'
         );
         
         // GESTIONE BODY CORRETTA: solo se necessario
         if ($data !== null) {
             $args['body'] = json_encode($data);
+        } else {
+            // Per alcuni endpoint che richiedono POST ma senza body
+            $args['body'] = '';
         }
-        // IMPORTANTE: Non aggiungere body vuoto per endpoint che non lo vogliono
         
         Naval_EGT_Dropbox_Debug::debug_log('API Call', array(
             'endpoint' => $endpoint,
@@ -1068,7 +1215,7 @@ class Naval_EGT_Dropbox {
     }
     
     /**
-     * Ottiene informazioni sull'account - VERSIONE ULTRA-SEMPLIFICATA
+     * Ottiene informazioni sull'account - VERSIONE FIXED
      */
     public function get_account_info() {
         $current_access_token = Naval_EGT_Database::get_setting('dropbox_access_token');
@@ -1078,93 +1225,47 @@ class Naval_EGT_Dropbox {
             return array('success' => false, 'message' => 'Access token mancante');
         }
         
-        Naval_EGT_Dropbox_Debug::debug_log('get_account_info called', array(
+        Naval_EGT_Dropbox_Debug::debug_log('get_account_info called - FIXED', array(
             'token_preview' => substr($token_to_use, 0, 20) . '...'
         ));
         
-        // METODO 1: cURL diretto (più controllo)
-        if (function_exists('curl_init')) {
-            $curl = curl_init();
-            
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => null, // Forza body NULL
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer ' . $token_to_use,
-                    'Content-Type: application/json',
-                    'Content-Length: 0'
-                ),
-                CURLOPT_TIMEOUT => 30,
-                CURLOPT_SSL_VERIFYPEER => true,
-                CURLOPT_SSL_VERIFYHOST => 2
-            ));
-            
-            $response = curl_exec($curl);
-            $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curl_error = curl_error($curl);
-            
-            Naval_EGT_Dropbox_Debug::debug_log('get_account_info cURL result', array(
-                'http_code' => $http_code,
-                'curl_error' => $curl_error,
-                'response_length' => strlen($response ?: ''),
-                'response_preview' => substr($response ?: '', 0, 100)
-            ));
-            
-            curl_close($curl);
-            
-            if (!empty($curl_error)) {
-                return array('success' => false, 'message' => 'cURL error: ' . $curl_error);
-            }
-            
-            if ($http_code === 200 && !empty($response)) {
-                $data = json_decode($response, true);
-                if ($data && isset($data['email'])) {
-                    return array('success' => true, 'data' => $data);
-                }
-            }
-            
-            // Se cURL fallisce, fallback
-        }
-        
-        // METODO 2: Stream context
-        $context = stream_context_create(array(
-            'http' => array(
-                'method' => 'POST',
-                'header' => "Authorization: Bearer {$token_to_use}\r\nContent-Type: application/json\r\nContent-Length: 0\r\n",
-                'content' => null,
-                'timeout' => 30,
-                'ignore_errors' => true
+        $curl = curl_init();
+
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => "POST",
+            CURLOPT_HTTPHEADER => array(
+                'Authorization: Bearer ' . trim($token_to_use),
             ),
-            'ssl' => array(
-                'verify_peer' => true,
-                'verify_peer_name' => true
-            )
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2
         ));
+
+        $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $body = curl_exec($curl);
         
-        $response = @file_get_contents('https://api.dropboxapi.com/2/users/get_current_account', false, $context);
-        
-        if ($response !== false && isset($http_response_header)) {
-            // Estrai codice HTTP
-            preg_match('/HTTP\/\d\.\d\s+(\d+)/', $http_response_header[0], $matches);
-            $http_code = isset($matches[1]) ? intval($matches[1]) : 0;
-            
-            Naval_EGT_Dropbox_Debug::debug_log('get_account_info stream result', array(
-                'http_code' => $http_code,
-                'response_length' => strlen($response),
-                'response_preview' => substr($response, 0, 100)
-            ));
-            
-            if ($http_code === 200) {
-                $data = json_decode($response, true);
-                if ($data && isset($data['email'])) {
-                    return array('success' => true, 'data' => $data);
-                }
+        curl_close($curl);
+
+        Naval_EGT_Dropbox_Debug::debug_log('API Response', array(
+            'http_code' => $http_code,
+            'body_length' => strlen($body),
+            'body_preview' => substr($body, 0, 200)
+        ));
+
+        if (!empty($body)) {
+            $data = json_decode($body, true);
+            if ($data && isset($data['email'])) {
+                return array('success' => true, 'data' => $data);
             }
         }
         
-        return array('success' => false, 'message' => 'Tutti i metodi di connessione hanno fallito');
+        return array(
+            'success' => false, 
+            'message' => "API Error - HTTP {$http_code}: " . substr($body, 0, 100)
+        );
     }
     
     /**
@@ -1260,11 +1361,10 @@ class Naval_EGT_Dropbox {
             curl_setopt_array($curl, array(
                 CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => null,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => "POST",
                 CURLOPT_HTTPHEADER => array(
                     'Authorization: Bearer ' . $token,
-                    'Content-Type: application/json'
                 ),
                 CURLOPT_TIMEOUT => 15,
                 CURLOPT_SSL_VERIFYPEER => true
@@ -1286,105 +1386,105 @@ class Naval_EGT_Dropbox {
             Naval_EGT_Dropbox_Debug::debug_log('Method 1 Result', $results['curl_null_body']);
         }
         
-        // Metodo 2: cURL con body vuoto string
-        if (function_exists('curl_init')) {
-            Naval_EGT_Dropbox_Debug::debug_log('Testing Method 2: cURL with empty string body');
+        // // Metodo 2: cURL con body vuoto string
+        // if (function_exists('curl_init')) {
+        //     Naval_EGT_Dropbox_Debug::debug_log('Testing Method 2: cURL with empty string body');
             
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => '',
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer ' . $token,
-                    'Content-Type: application/json',
-                    'Content-Length: 0'
-                ),
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_SSL_VERIFYPEER => true
-            ));
+        //     $curl = curl_init();
+        //     curl_setopt_array($curl, array(
+        //         CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
+        //         CURLOPT_RETURNTRANSFER => true,
+        //         CURLOPT_POST => true,
+        //         CURLOPT_POSTFIELDS => '',
+        //         CURLOPT_HTTPHEADER => array(
+        //             'Authorization: Bearer ' . $token,
+        //             'Content-Type: application/json',
+        //             'Content-Length: 0'
+        //         ),
+        //         CURLOPT_TIMEOUT => 15,
+        //         CURLOPT_SSL_VERIFYPEER => true
+        //     ));
             
-            $response = curl_exec($curl);
-            $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curl_error = curl_error($curl);
-            curl_close($curl);
+        //     $response = curl_exec($curl);
+        //     $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        //     $curl_error = curl_error($curl);
+        //     curl_close($curl);
             
-            $results['curl_empty_body'] = array(
-                'http_code' => $http_code,
-                'success' => ($http_code === 200),
-                'curl_error' => $curl_error,
-                'response_length' => strlen($response ?: ''),
-                'response_preview' => substr($response ?: '', 0, 200)
-            );
+        //     $results['curl_empty_body'] = array(
+        //         'http_code' => $http_code,
+        //         'success' => ($http_code === 200),
+        //         'curl_error' => $curl_error,
+        //         'response_length' => strlen($response ?: ''),
+        //         'response_preview' => substr($response ?: '', 0, 200)
+        //     );
             
-            Naval_EGT_Dropbox_Debug::debug_log('Method 2 Result', $results['curl_empty_body']);
-        }
+        //     Naval_EGT_Dropbox_Debug::debug_log('Method 2 Result', $results['curl_empty_body']);
+        // }
         
-        // Metodo 3: cURL con body JSON vuoto
-        if (function_exists('curl_init')) {
-            Naval_EGT_Dropbox_Debug::debug_log('Testing Method 3: cURL with empty JSON body');
+        // // Metodo 3: cURL con body JSON vuoto
+        // if (function_exists('curl_init')) {
+        //     Naval_EGT_Dropbox_Debug::debug_log('Testing Method 3: cURL with empty JSON body');
             
-            $curl = curl_init();
-            curl_setopt_array($curl, array(
-                CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => '{}',
-                CURLOPT_HTTPHEADER => array(
-                    'Authorization: Bearer ' . $token,
-                    'Content-Type: application/json'
-                ),
-                CURLOPT_TIMEOUT => 15,
-                CURLOPT_SSL_VERIFYPEER => true
-            ));
+        //     $curl = curl_init();
+        //     curl_setopt_array($curl, array(
+        //         CURLOPT_URL => 'https://api.dropboxapi.com/2/users/get_current_account',
+        //         CURLOPT_RETURNTRANSFER => true,
+        //         CURLOPT_POST => true,
+        //         CURLOPT_POSTFIELDS => '{}',
+        //         CURLOPT_HTTPHEADER => array(
+        //             'Authorization: Bearer ' . $token,
+        //             'Content-Type: application/json'
+        //         ),
+        //         CURLOPT_TIMEOUT => 15,
+        //         CURLOPT_SSL_VERIFYPEER => true
+        //     ));
             
-            $response = curl_exec($curl);
-            $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-            $curl_error = curl_error($curl);
-            curl_close($curl);
+        //     $response = curl_exec($curl);
+        //     $http_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        //     $curl_error = curl_error($curl);
+        //     curl_close($curl);
             
-            $results['curl_json_body'] = array(
-                'http_code' => $http_code,
-                'success' => ($http_code === 200),
-                'curl_error' => $curl_error,
-                'response_length' => strlen($response ?: ''),
-                'response_preview' => substr($response ?: '', 0, 200)
-            );
+        //     $results['curl_json_body'] = array(
+        //         'http_code' => $http_code,
+        //         'success' => ($http_code === 200),
+        //         'curl_error' => $curl_error,
+        //         'response_length' => strlen($response ?: ''),
+        //         'response_preview' => substr($response ?: '', 0, 200)
+        //     );
             
-            Naval_EGT_Dropbox_Debug::debug_log('Method 3 Result', $results['curl_json_body']);
-        }
+        //     Naval_EGT_Dropbox_Debug::debug_log('Method 3 Result', $results['curl_json_body']);
+        // }
         
-        // Metodo 4: WordPress wp_remote_post senza body
-        Naval_EGT_Dropbox_Debug::debug_log('Testing Method 4: WordPress wp_remote_post without body');
+        // // Metodo 4: WordPress wp_remote_post senza body
+        // Naval_EGT_Dropbox_Debug::debug_log('Testing Method 4: WordPress wp_remote_post without body');
         
-        $wp_response = wp_remote_post('https://api.dropboxapi.com/2/users/get_current_account', array(
-            'headers' => array(
-                'Authorization' => 'Bearer ' . $token,
-                'Content-Type' => 'application/json'
-            ),
-            'timeout' => 15
-        ));
+        // $wp_response = wp_remote_post('https://api.dropboxapi.com/2/users/get_current_account', array(
+        //     'headers' => array(
+        //         'Authorization' => 'Bearer ' . $token,
+        //         'Content-Type' => 'application/json'
+        //     ),
+        //     'timeout' => 15
+        // ));
         
-        if (!is_wp_error($wp_response)) {
-            $results['wp_no_body'] = array(
-                'http_code' => wp_remote_retrieve_response_code($wp_response),
-                'success' => (wp_remote_retrieve_response_code($wp_response) === 200),
-                'wp_error' => false,
-                'response_length' => strlen(wp_remote_retrieve_body($wp_response)),
-                'response_preview' => substr(wp_remote_retrieve_body($wp_response), 0, 200)
-            );
-        } else {
-            $results['wp_no_body'] = array(
-                'http_code' => 0,
-                'success' => false,
-                'wp_error' => $wp_response->get_error_message(),
-                'response_length' => 0,
-                'response_preview' => ''
-            );
-        }
+        // if (!is_wp_error($wp_response)) {
+        //     $results['wp_no_body'] = array(
+        //         'http_code' => wp_remote_retrieve_response_code($wp_response),
+        //         'success' => (wp_remote_retrieve_response_code($wp_response) === 200),
+        //         'wp_error' => false,
+        //         'response_length' => strlen(wp_remote_retrieve_body($wp_response)),
+        //         'response_preview' => substr(wp_remote_retrieve_body($wp_response), 0, 200)
+        //     );
+        // } else {
+        //     $results['wp_no_body'] = array(
+        //         'http_code' => 0,
+        //         'success' => false,
+        //         'wp_error' => $wp_response->get_error_message(),
+        //         'response_length' => 0,
+        //         'response_preview' => ''
+        //     );
+        // }
         
-        Naval_EGT_Dropbox_Debug::debug_log('Method 4 Result', $results['wp_no_body']);
+        // Naval_EGT_Dropbox_Debug::debug_log('Method 4 Result', $results['wp_no_body']);
         
         // Riepilogo risultati
         $successful_methods = array();
@@ -1415,10 +1515,12 @@ class Naval_EGT_Dropbox {
         // Pulisci tutto
         Naval_EGT_Database::update_setting('dropbox_access_token', '');
         Naval_EGT_Database::update_setting('dropbox_refresh_token', '');
+        Naval_EGT_Database::update_setting('dropbox_oauth_state', '');
         
         // Pulisci anche da WordPress options come fallback
         delete_option('naval_egt_dropbox_access_token');
         delete_option('naval_egt_dropbox_refresh_token');
+        delete_transient('naval_egt_dropbox_state');
         
         // Pulisci proprietà della classe
         $this->access_token = '';
@@ -1498,7 +1600,10 @@ class Naval_EGT_Dropbox {
             $diagnosis['connection_test'] = array('success' => false, 'message' => 'Nessun token per test connessione');
         }
         
-        // 7. Raccomandazioni basate sui risultati
+        // 7. Test credenziali app
+        $diagnosis['app_credentials_test'] = $this->test_app_credentials();
+        
+        // 8. Raccomandazioni basate sui risultati
         $diagnosis['recommendations'] = $this->generate_recommendations($diagnosis);
         
         Naval_EGT_Dropbox_Debug::debug_log('FULL SYSTEM DIAGNOSIS COMPLETED', array(
@@ -1515,6 +1620,16 @@ class Naval_EGT_Dropbox {
      */
     private function generate_recommendations($diagnosis) {
         $recommendations = array();
+        
+        // Verifica credenziali app
+        if (isset($diagnosis['app_credentials_test']['success']) && !$diagnosis['app_credentials_test']['success']) {
+            $recommendations[] = array(
+                'priority' => 'CRITICAL',
+                'issue' => 'Credenziali app non valide',
+                'solution' => $diagnosis['app_credentials_test']['message'],
+                'action' => 'check_app_credentials'
+            );
+        }
         
         // Verifica token
         if (isset($diagnosis['token_analysis']['error'])) {

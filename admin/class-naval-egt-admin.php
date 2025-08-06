@@ -1,6 +1,7 @@
 <?php
 /**
  * Classe per la gestione dell'area admin - Versione completa con debug avanzato
+ * Integrata con i nuovi metodi di diagnosi Dropbox
  */
 
 if (!defined('ABSPATH')) {
@@ -76,7 +77,7 @@ class Naval_EGT_Admin {
             $this->handle_dropbox_callback_legacy();
         }
 
-        // NUOVO: Gestione azioni debug Dropbox
+        // AGGIORNATO: Gestione azioni debug Dropbox
         if (isset($_GET['page']) && $_GET['page'] === 'naval-egt' && 
             isset($_GET['tab']) && $_GET['tab'] === 'dropbox') {
             $this->handle_dropbox_debug_actions();
@@ -84,7 +85,7 @@ class Naval_EGT_Admin {
     }
 
     /**
-     * NUOVO: Gestisce le azioni di debug Dropbox
+     * AGGIORNATO: Gestisce le azioni di debug Dropbox con i nuovi metodi
      */
     private function handle_dropbox_debug_actions() {
         if (!current_user_can('manage_options')) {
@@ -110,6 +111,15 @@ class Naval_EGT_Admin {
                 $diagnosis = $dropbox->full_system_diagnosis();
                 $this->set_dropbox_diagnosis_data($diagnosis);
                 $this->add_admin_notice('Diagnosi completa eseguita. Controlla i risultati qui sotto.', 'info');
+                break;
+
+            case 'test_app_credentials':
+                $cred_test = $dropbox->test_app_credentials();
+                if ($cred_test['success']) {
+                    $this->add_admin_notice('✅ Test credenziali app: ' . $cred_test['message'], 'success');
+                } else {
+                    $this->add_admin_notice('❌ Test credenziali app fallito: ' . $cred_test['message'], 'error');
+                }
                 break;
 
             case 'regenerate_token':
@@ -144,6 +154,34 @@ class Naval_EGT_Admin {
                 $this->set_multiple_tests_data($tests);
                 $this->add_admin_notice('Test multipli completati. Controlla i risultati qui sotto.', 'info');
                 break;
+
+            case 'debug_400_error':
+                // Se c'è un codice nella sessione o nei parametri
+                $code = isset($_GET['test_code']) ? sanitize_text_field($_GET['test_code']) : '';
+                if (!empty($code)) {
+                    $debug_result = $dropbox->debug_400_error($code);
+                    $this->set_debug_400_data($debug_result);
+                    $this->add_admin_notice('Debug errore HTTP 400 completato. Controlla i risultati.', 'info');
+                } else {
+                    $this->add_admin_notice('Codice di test non fornito per debug 400.', 'warning');
+                }
+                break;
+
+            case 'reload_credentials':
+                $dropbox->reload_credentials();
+                $this->add_admin_notice('Credenziali ricaricate dal database.', 'info');
+                break;
+
+            case 'clear_debug_logs':
+                $dropbox->clear_debug_logs();
+                $this->add_admin_notice('Log di debug puliti.', 'success');
+                break;
+
+            case 'export_debug_info':
+                $debug_info = $dropbox->export_debug_info();
+                $this->set_debug_export_data($debug_info);
+                $this->add_admin_notice('Informazioni debug esportate. Controlla qui sotto.', 'info');
+                break;
         }
 
         // Redirect per pulire l'URL
@@ -177,6 +215,20 @@ class Naval_EGT_Admin {
      */
     private function set_multiple_tests_data($tests) {
         set_transient('naval_egt_multiple_tests', $tests, 300); // 5 minuti
+    }
+
+    /**
+     * NUOVO: Salva i dati del debug 400
+     */
+    private function set_debug_400_data($debug_result) {
+        set_transient('naval_egt_debug_400', $debug_result, 300); // 5 minuti
+    }
+
+    /**
+     * NUOVO: Salva i dati di export debug
+     */
+    private function set_debug_export_data($debug_info) {
+        set_transient('naval_egt_debug_export', $debug_info, 300); // 5 minuti
     }
     
     /**
@@ -227,7 +279,19 @@ class Naval_EGT_Admin {
             $this->add_admin_notice($result['message'], 'success');
         } else {
             $this->add_admin_notice('Errore configurazione: ' . $result['message'], 'error');
+            
+            // NUOVO: Se fallisce, salva i dati per il debug
+            if (isset($result['debug_info'])) {
+                $this->set_debug_callback_data($result);
+            }
         }
+    }
+
+    /**
+     * NUOVO: Salva i dati del callback per debug
+     */
+    private function set_debug_callback_data($callback_result) {
+        set_transient('naval_egt_callback_debug', $callback_result, 300); // 5 minuti
     }
     
     /**
@@ -368,7 +432,10 @@ class Naval_EGT_Admin {
                 <?php else: ?>
                     <p style="color: red;">❌ <strong>Non Connesso</strong></p>
                     <p><?php echo esc_html($dropbox_status['message']); ?></p>
-                    <a href="?page=naval-egt&tab=dropbox" class="button button-primary">Configura Dropbox</a>
+                    <div style="margin-top: 15px;">
+                        <a href="?page=naval-egt&tab=dropbox" class="button button-primary">Configura Dropbox</a>
+                        <a href="?page=naval-egt&tab=dropbox-debug" class="button button-secondary" style="margin-left: 10px;">🔍 Debug Problemi</a>
+                    </div>
                 <?php endif; ?>
             </div>
             
@@ -381,6 +448,9 @@ class Naval_EGT_Admin {
                     <a href="?page=naval-egt&tab=logs" class="button">📋 Visualizza Log</a>
                     <?php if ($dropbox_status['connected']): ?>
                         <button class="button" onclick="syncAllFolders()">🔄 Sincronizza Tutte le Cartelle</button>
+                        <button class="button" onclick="testDropboxQuick()">🧪 Test Dropbox Veloce</button>
+                    <?php else: ?>
+                        <button class="button" onclick="diagnoseDropbox()" style="background: #dc3232; border-color: #dc3232; color: white;">🔍 Diagnosi Dropbox</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -447,6 +517,7 @@ class Naval_EGT_Admin {
         }
         
         .card {
+            max-width: 100% !important; 
             background: white;
             border: 1px solid #ccd0d4;
             border-radius: 4px;
@@ -477,6 +548,26 @@ class Naval_EGT_Admin {
                     alert('Errore durante la sincronizzazione: ' + response.data);
                 }
             });
+        }
+
+        function testDropboxQuick() {
+            jQuery.post(ajaxurl, {
+                action: 'naval_egt_ajax',
+                naval_action: 'test_dropbox_connection',
+                nonce: '<?php echo wp_create_nonce('naval_egt_nonce'); ?>'
+            }, function(response) {
+                if (response.success) {
+                    alert('✅ Test Dropbox OK!\n\nConnesso come: ' + (response.data.account_email || 'Account Dropbox'));
+                } else {
+                    alert('❌ Test Dropbox fallito!\n\nErrore: ' + response.data);
+                }
+            });
+        }
+
+        function diagnoseDropbox() {
+            if (confirm('Vuoi eseguire una diagnosi completa di Dropbox?\n\nQuesta operazione analizzerà la configurazione e identificherà eventuali problemi.')) {
+                window.location.href = '<?php echo admin_url('admin.php?page=naval-egt&tab=dropbox-debug&auto_diagnose=1'); ?>';
+            }
         }
         </script>
         <?php
@@ -747,7 +838,7 @@ class Naval_EGT_Admin {
     }
     
     /**
-     * Renderizza pagina impostazioni Dropbox - AGGIORNATA CON DEBUG INTEGRATO
+     * Renderizza pagina impostazioni Dropbox - AGGIORNATA CON TUTTE LE NUOVE FUNZIONALITÀ
      */
     private function render_dropbox_settings() {
         $dropbox = Naval_EGT_Dropbox::get_instance();
@@ -782,19 +873,21 @@ class Naval_EGT_Admin {
         $is_configured = $dropbox->is_configured();
         $connection_status = $dropbox->get_connection_status();
 
-        // NUOVO: Recupera dati debug se disponibili
+        // AGGIORNATO: Recupera tutti i dati debug se disponibili
         $diagnosis_data = get_transient('naval_egt_dropbox_diagnosis');
         $auth_url_display = get_transient('naval_egt_dropbox_auth_url');
         $token_analysis = get_transient('naval_egt_token_analysis');
         $multiple_tests = get_transient('naval_egt_multiple_tests');
+        $debug_400 = get_transient('naval_egt_debug_400');
+        $callback_debug = get_transient('naval_egt_callback_debug');
         
         ?>
         <div class="wrap">
             <h2>☁️ Configurazione Dropbox</h2>
             
-            <!-- NUOVO: Strumenti di Debug Integrati -->
+            <!-- AGGIORNATO: Strumenti di Debug Integrati con tutti i nuovi metodi -->
             <div class="card" style="border-left: 4px solid #dc3232;">
-                <h3>🔧 Strumenti di Debug e Risoluzione Problemi</h3>
+                <h3>🔧 Strumenti di Debug e Risoluzione Problemi Avanzati</h3>
                 <p><strong>Se Dropbox non funziona correttamente, usa questi strumenti per diagnosticare e risolvere i problemi:</strong></p>
                 
                 <div style="margin: 15px 0;">
@@ -803,35 +896,118 @@ class Naval_EGT_Admin {
                     $nonce = wp_create_nonce('naval_egt_dropbox_debug');
                     ?>
                     
-                    <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_diagnosis&_wpnonce=' . $nonce); ?>" 
-                       class="button button-primary" style="margin-right: 10px;">
-                        🔍 Diagnosi Completa
-                    </a>
+                    <!-- Riga 1: Diagnosi Principale -->
+                    <div style="margin-bottom: 10px;">
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_diagnosis&_wpnonce=' . $nonce); ?>" 
+                           class="button button-primary" style="margin-right: 10px;">
+                            🔍 Diagnosi Completa
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_app_credentials&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            🔑 Test Credenziali App
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_connection&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            📡 Test Connessione
+                        </a>
+                    </div>
                     
-                    <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=analyze_token&_wpnonce=' . $nonce); ?>" 
-                       class="button" style="margin-right: 10px;">
-                        🔑 Analizza Token
-                    </a>
+                    <!-- Riga 2: Analisi Token -->
+                    <div style="margin-bottom: 10px;">
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=analyze_token&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            🔑 Analizza Token
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_multiple_methods&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            🧪 Test Metodi Multipli
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=export_debug_info&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            📊 Esporta Info Debug
+                        </a>
+                    </div>
                     
-                    <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_multiple_methods&_wpnonce=' . $nonce); ?>" 
-                       class="button" style="margin-right: 10px;">
-                        🧪 Test Multipli
-                    </a>
-                    
-                    <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=test_connection&_wpnonce=' . $nonce); ?>" 
-                       class="button" style="margin-right: 10px;">
-                        📡 Test Connessione
-                    </a>
-                    
-                    <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=regenerate_token&_wpnonce=' . $nonce); ?>" 
-                       class="button" style="background: #dc3232; border-color: #dc3232; color: white; margin-right: 10px;"
-                       onclick="return confirm('⚠️ ATTENZIONE: Questo cancellerà il token corrente e dovrai riautorizzare Dropbox.\n\nUsa questo solo se il token attuale è corrotto.\n\nProcedere?');">
-                        🔄 Rigenera Token
-                    </a>
+                    <!-- Riga 3: Azioni Avanzate -->
+                    <div style="margin-bottom: 10px;">
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=reload_credentials&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            🔄 Ricarica Credenziali
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=clear_debug_logs&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="margin-right: 10px;">
+                            🗑️ Pulisci Log Debug
+                        </a>
+                        
+                        <a href="<?php echo esc_url($debug_base_url . '&dropbox_debug_action=regenerate_token&_wpnonce=' . $nonce); ?>" 
+                           class="button" style="background: #dc3232; border-color: #dc3232; color: white; margin-right: 10px;"
+                           onclick="return confirm('⚠️ ATTENZIONE: Questo cancellerà il token corrente e dovrai riautorizzare Dropbox.\n\nUsa questo solo se il token attuale è corrotto.\n\nProcedere?');">
+                            🔄 Rigenera Token
+                        </a>
+                    </div>
                 </div>
                 
                 <p><small><strong>💡 Suggerimento:</strong> Se Dropbox non funziona, prova prima "Diagnosi Completa" per capire il problema, poi "Rigenera Token" se necessario.</small></p>
             </div>
+
+            <!-- NUOVO: Mostra debug callback se fallito -->
+            <?php if ($callback_debug && !$callback_debug['success']): ?>
+            <div class="card" style="border-left: 4px solid #dc3232; background: #ffeaea;">
+                <h3>❌ Errore nel Callback di Autorizzazione</h3>
+                <p><strong>Il callback di autorizzazione Dropbox è fallito con il seguente errore:</strong></p>
+                <div style="background: #fff; padding: 15px; margin: 10px 0; border: 1px solid #dc3232; border-radius: 4px;">
+                    <p><strong>Messaggio:</strong> <?php echo esc_html($callback_debug['message']); ?></p>
+                    
+                    <?php if (isset($callback_debug['debug_info'])): ?>
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer; font-weight: bold;">📋 Dettagli Debug</summary>
+                            <pre style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 11px; overflow: auto; max-height: 300px;"><?php echo esc_html(json_encode($callback_debug['debug_info'], JSON_PRETTY_PRINT)); ?></pre>
+                        </details>
+                    <?php endif; ?>
+                </div>
+                <p><strong>Cosa fare:</strong></p>
+                <ol>
+                    <li>Usa "Diagnosi Completa" per identificare il problema specifico</li>
+                    <li>Se il token è corrotto, usa "Rigenera Token"</li>
+                    <li>Verifica che l'URL di redirect sia corretto nell'app Dropbox</li>
+                </ol>
+            </div>
+            <?php 
+            delete_transient('naval_egt_callback_debug');
+            endif; ?>
+
+            <!-- NUOVO: Mostra debug 400 se disponibile -->
+            <?php if ($debug_400): ?>
+            <div class="card" style="border-left: 4px solid #ffb900;">
+                <h3>🔍 Debug Errore HTTP 400</h3>
+                
+                <?php if ($debug_400['success']): ?>
+                    <div style="background: #eafaea; padding: 15px; border-radius: 4px;">
+                        <p><strong>✅ Il debug del token exchange è riuscito!</strong></p>
+                        <p>HTTP Code: <?php echo $debug_400['http_code']; ?></p>
+                    </div>
+                <?php else: ?>
+                    <div style="background: #ffeaea; padding: 15px; border-radius: 4px;">
+                        <p><strong>❌ Debug HTTP 400:</strong> <?php echo esc_html($debug_400['message']); ?></p>
+                        <p>HTTP Code: <?php echo $debug_400['http_code'] ?? 'N/A'; ?></p>
+                        
+                        <?php if (isset($debug_400['error_details'])): ?>
+                            <details style="margin-top: 10px;">
+                                <summary style="cursor: pointer;">📋 Dettagli Errore Dropbox</summary>
+                                <pre style="background: #f0f0f0; padding: 10px; margin: 10px 0; font-size: 11px;"><?php echo esc_html(json_encode($debug_400['error_details'], JSON_PRETTY_PRINT)); ?></pre>
+                            </details>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php 
+            delete_transient('naval_egt_debug_400');
+            endif; ?>
 
             <!-- NUOVO: Mostra URL di autorizzazione se generato -->
             <?php if ($auth_url_display): ?>
@@ -848,12 +1024,24 @@ class Naval_EGT_Admin {
                 </p>
                 <p><small>Dopo aver cliccato il link, autorizza l'app su Dropbox e verrai reindirizzato automaticamente qui.</small></p>
             </div>
-            <?php endif; ?>
+            <?php 
+            delete_transient('naval_egt_dropbox_auth_url');
+            endif; ?>
 
-            <!-- NUOVO: Mostra risultati diagnosi -->
+            <!-- AGGIORNATO: Mostra risultati diagnosi -->
             <?php if ($diagnosis_data): ?>
             <div class="card" style="border-left: 4px solid #0073aa;">
                 <h3>📊 Risultati Diagnosi Completa</h3>
+                
+                <!-- Test Credenziali App -->
+                <?php if (isset($diagnosis_data['app_credentials_test'])): ?>
+                    <div style="background: <?php echo $diagnosis_data['app_credentials_test']['success'] ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                        <h4 style="color: <?php echo $diagnosis_data['app_credentials_test']['success'] ? '#00a32a' : '#dc3232'; ?>;">
+                            <?php echo $diagnosis_data['app_credentials_test']['success'] ? '✅ Credenziali App Valide' : '❌ Credenziali App Non Valide'; ?>
+                        </h4>
+                        <p><?php echo esc_html($diagnosis_data['app_credentials_test']['message']); ?></p>
+                    </div>
+                <?php endif; ?>
                 
                 <?php if (isset($diagnosis_data['token_analysis']['error'])): ?>
                     <div style="background: #ffeaea; padding: 15px; margin: 10px 0; border: 1px solid #dc3232; border-radius: 4px;">
@@ -877,15 +1065,20 @@ class Naval_EGT_Admin {
                             🧪 Test API: <?php echo $diagnosis_data['token_tests']['summary']['success_count']; ?>/<?php echo $diagnosis_data['token_tests']['summary']['total_methods_tested']; ?> funzionanti
                         </h4>
                         <p><strong>Token funziona:</strong> <?php echo $diagnosis_data['token_tests']['summary']['token_seems_valid'] ? 'SÌ' : 'NO'; ?></p>
+                        
+                        <?php if (!empty($diagnosis_data['token_tests']['summary']['successful_methods'])): ?>
+                            <p><strong>Metodi funzionanti:</strong> <?php echo implode(', ', $diagnosis_data['token_tests']['summary']['successful_methods']); ?></p>
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
 
                 <?php if (isset($diagnosis_data['recommendations']) && !empty($diagnosis_data['recommendations'])): ?>
                     <h4>💡 Raccomandazioni:</h4>
                     <?php foreach ($diagnosis_data['recommendations'] as $rec): ?>
-                        <div style="background: #fff; padding: 10px; margin: 5px 0; border-left: 4px solid <?php echo $rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#ffb900' : '#00a32a'); ?>;">
+                        <div style="background: #fff; padding: 10px; margin: 5px 0; border-left: 4px solid <?php echo $rec['priority'] === 'CRITICAL' ? '#dc3232' : ($rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#ffb900' : '#00a32a')); ?>;">
                             <p><strong><?php echo esc_html($rec['priority']); ?>:</strong> <?php echo esc_html($rec['issue']); ?></p>
                             <p><em><?php echo esc_html($rec['solution']); ?></em></p>
+                            <p><small><strong>Azione:</strong> <code><?php echo esc_html($rec['action']); ?></code></small></p>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
@@ -897,7 +1090,7 @@ class Naval_EGT_Admin {
             delete_transient('naval_egt_dropbox_diagnosis');
             endif; ?>
 
-            <!-- NUOVO: Mostra analisi token -->
+            <!-- AGGIORNATO: Mostra analisi token -->
             <?php if ($token_analysis): ?>
             <div class="card" style="border-left: 4px solid #ffb900;">
                 <h3>🔑 Analisi Token Dettagliata</h3>
@@ -909,8 +1102,11 @@ class Naval_EGT_Admin {
                         <tr><th>Lunghezza</th><td><?php echo $token_analysis['length']; ?> caratteri</td></tr>
                         <tr><th>Caratteri unici</th><td><?php echo $token_analysis['unique_chars']; ?></td></tr>
                         <tr><th>Contiene spazi</th><td><?php echo $token_analysis['contains_spaces'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                        <tr><th>Contiene newline</th><td><?php echo $token_analysis['contains_newlines'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
                         <tr><th>Sembra valido</th><td><?php echo $token_analysis['seems_valid'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
                         <tr><th>Inizia con "sl."</th><td><?php echo $token_analysis['dropbox_patterns']['starts_with_sl'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                        <tr><th>Ha underscores</th><td><?php echo $token_analysis['dropbox_patterns']['has_underscores'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                        <tr><th>Lunghezza ragionevole</th><td><?php echo $token_analysis['dropbox_patterns']['reasonable_length'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
                     </table>
                 <?php endif; ?>
             </div>
@@ -918,7 +1114,7 @@ class Naval_EGT_Admin {
             delete_transient('naval_egt_token_analysis');
             endif; ?>
 
-            <!-- NUOVO: Mostra test multipli -->
+            <!-- AGGIORNATO: Mostra test multipli -->
             <?php if ($multiple_tests): ?>
             <div class="card" style="border-left: 4px solid #7c3aed;">
                 <h3>🧪 Risultati Test Multipli</h3>
@@ -928,7 +1124,7 @@ class Naval_EGT_Admin {
                 <?php else: ?>
                     <table class="widefat">
                         <thead>
-                            <tr><th>Metodo</th><th>Stato</th><th>Codice HTTP</th><th>Errore</th></tr>
+                            <tr><th>Metodo</th><th>Stato</th><th>Codice HTTP</th><th>Errore</th><th>Risposta</th></tr>
                         </thead>
                         <tbody>
                             <?php foreach ($multiple_tests as $method => $result): ?>
@@ -938,13 +1134,21 @@ class Naval_EGT_Admin {
                                     <td><?php echo $result['success'] ? '✅ OK' : '❌ FAIL'; ?></td>
                                     <td><?php echo $result['http_code'] ?? 'N/A'; ?></td>
                                     <td><?php echo esc_html($result['curl_error'] ?? $result['wp_error'] ?? '-'); ?></td>
+                                    <td><?php echo esc_html(substr($result['response_preview'] ?? '', 0, 50)); ?><?php echo strlen($result['response_preview'] ?? '') > 50 ? '...' : ''; ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
                     
                     <?php if (isset($multiple_tests['summary'])): ?>
-                        <p><strong>Riepilogo:</strong> <?php echo $multiple_tests['summary']['success_count']; ?>/<?php echo $multiple_tests['summary']['total_methods_tested']; ?> metodi funzionanti</p>
+                        <div style="background: <?php echo $multiple_tests['summary']['success_count'] > 0 ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                            <p><strong>Riepilogo:</strong> <?php echo $multiple_tests['summary']['success_count']; ?>/<?php echo $multiple_tests['summary']['total_methods_tested']; ?> metodi funzionanti</p>
+                            <p><strong>Token sembra valido:</strong> <?php echo $multiple_tests['summary']['token_seems_valid'] ? '✅ SÌ' : '❌ NO'; ?></p>
+                            
+                            <?php if (!empty($multiple_tests['summary']['successful_methods'])): ?>
+                                <p><strong>Metodi che funzionano:</strong> <?php echo implode(', ', $multiple_tests['summary']['successful_methods']); ?></p>
+                            <?php endif; ?>
+                        </div>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
@@ -1090,10 +1294,17 @@ class Naval_EGT_Admin {
     }
     
     /**
-     * Renderizza pagina debug Dropbox - AGGIORNATA
+     * Renderizza pagina debug Dropbox - COMPLETAMENTE AGGIORNATA
      */
     private function render_dropbox_debug() {
         $dropbox = Naval_EGT_Dropbox::get_instance();
+        
+        // AGGIORNATO: Auto-diagnosi se richiesta
+        if (isset($_GET['auto_diagnose']) && $_GET['auto_diagnose'] === '1') {
+            $diagnosis = $dropbox->full_system_diagnosis();
+            $this->set_dropbox_diagnosis_data($diagnosis);
+            $this->add_admin_notice('Diagnosi automatica eseguita. Controlla i risultati qui sotto.', 'info');
+        }
         
         // Gestisci azioni debug
         if (isset($_POST['clear_debug_logs'])) {
@@ -1118,12 +1329,36 @@ class Naval_EGT_Admin {
             $this->add_admin_notice('Credenziali ricaricate dal database.', 'info');
         }
 
-        // NUOVO: Gestione nuove azioni debug
+        // AGGIORNATO: Gestione nuove azioni debug POST
         if (isset($_POST['run_full_diagnosis'])) {
             check_admin_referer('naval_egt_debug_diagnosis');
             $diagnosis = $dropbox->full_system_diagnosis();
             $this->set_dropbox_diagnosis_data($diagnosis);
             $this->add_admin_notice('Diagnosi completa eseguita. Controlla i risultati qui sotto.', 'info');
+        }
+
+        if (isset($_POST['test_app_credentials'])) {
+            check_admin_referer('naval_egt_debug_cred');
+            $cred_test = $dropbox->test_app_credentials();
+            if ($cred_test['success']) {
+                $this->add_admin_notice('✅ Test credenziali app: ' . $cred_test['message'], 'success');
+            } else {
+                $this->add_admin_notice('❌ Test credenziali app fallito: ' . $cred_test['message'], 'error');
+            }
+        }
+
+        if (isset($_POST['analyze_token_detailed'])) {
+            check_admin_referer('naval_egt_debug_token');
+            $analysis = $dropbox->analyze_token_detailed();
+            $this->set_token_analysis_data($analysis);
+            $this->add_admin_notice('Analisi token dettagliata completata.', 'info');
+        }
+
+        if (isset($_POST['test_multiple_methods'])) {
+            check_admin_referer('naval_egt_debug_multi');
+            $tests = $dropbox->test_token_multiple_methods();
+            $this->set_multiple_tests_data($tests);
+            $this->add_admin_notice('Test multipli completati.', 'info');
         }
 
         if (isset($_POST['force_token_regeneration'])) {
@@ -1138,19 +1373,29 @@ class Naval_EGT_Admin {
                 $this->add_admin_notice('Errore nella rigenerazione: ' . $result['message'], 'error');
             }
         }
+
+        if (isset($_POST['export_debug_complete'])) {
+            check_admin_referer('naval_egt_debug_export');
+            $debug_info = $dropbox->export_debug_info();
+            $this->set_debug_export_data($debug_info);
+            $this->add_admin_notice('Informazioni debug esportate.', 'info');
+        }
         
         // Ottieni informazioni debug
         $debug_info = $dropbox->debug_configuration();
         $debug_logs = $dropbox->get_debug_logs();
         $is_configured = $dropbox->is_configured();
 
-        // NUOVO: Recupera dati diagnosi se disponibili
+        // AGGIORNATO: Recupera tutti i dati diagnosi se disponibili
         $diagnosis_data = get_transient('naval_egt_dropbox_diagnosis');
         $auth_url_display = get_transient('naval_egt_dropbox_auth_url');
+        $token_analysis = get_transient('naval_egt_token_analysis');
+        $multiple_tests = get_transient('naval_egt_multiple_tests');
+        $debug_export = get_transient('naval_egt_debug_export');
         
         ?>
         <div class="wrap">
-            <h1>🔍 Debug Dropbox - Naval EGT</h1>
+            <h1>🔍 Debug Dropbox Avanzato - Naval EGT</h1>
 
             <!-- NUOVO: URL di autorizzazione se generato -->
             <?php if ($auth_url_display): ?>
@@ -1171,16 +1416,57 @@ class Naval_EGT_Admin {
             delete_transient('naval_egt_dropbox_auth_url');
             endif; ?>
 
-            <!-- NUOVO: Risultati diagnosi dettagliati -->
+            <!-- AGGIORNATO: Export debug se disponibile -->
+            <?php if ($debug_export): ?>
+            <div class="card" style="border-left: 4px solid #9c27b0;">
+                <h3>📊 Esportazione Debug Completa</h3>
+                <p><strong>Informazioni complete del sistema esportate per l'analisi:</strong></p>
+                
+                <details style="margin: 15px 0;">
+                    <summary style="cursor: pointer; font-weight: bold; font-size: 16px;">📋 Dati Completi Sistema (clicca per espandere)</summary>
+                    <div style="background: #f0f0f0; padding: 20px; margin: 10px 0; border-radius: 4px; max-height: 600px; overflow: auto;">
+                        <pre style="white-space: pre-wrap; font-size: 11px; line-height: 1.4;"><?php echo esc_html(json_encode($debug_export, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
+                    </div>
+                </details>
+                
+                <p><strong>Come usare questi dati:</strong></p>
+                <ul>
+                    <li>Copia il contenuto e invialo al supporto tecnico</li>
+                    <li>Cerca sezioni specifiche come "token_analysis" o "recommendations"</li>
+                    <li>Controlla "debug_logs" per errori dettagliati</li>
+                </ul>
+            </div>
+            <?php 
+            delete_transient('naval_egt_debug_export');
+            endif; ?>
+
+            <!-- AGGIORNATO: Risultati diagnosi dettagliati -->
             <?php if ($diagnosis_data): ?>
             <div class="card" style="border-left: 4px solid #0073aa;">
                 <h3>📊 Risultati Diagnosi Completa Dettagliata</h3>
+                
+                <!-- Test Credenziali App -->
+                <?php if (isset($diagnosis_data['app_credentials_test'])): ?>
+                <div style="background: <?php echo $diagnosis_data['app_credentials_test']['success'] ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; margin: 10px 0; border-radius: 4px;">
+                    <h4 style="color: <?php echo $diagnosis_data['app_credentials_test']['success'] ? '#00a32a' : '#dc3232'; ?>; margin: 0 0 10px 0;">
+                        🔑 <?php echo $diagnosis_data['app_credentials_test']['success'] ? 'Credenziali App Valide' : 'Credenziali App Non Valide'; ?>
+                    </h4>
+                    <p style="margin: 0;"><strong>Risultato:</strong> <?php echo esc_html($diagnosis_data['app_credentials_test']['message']); ?></p>
+                    
+                    <?php if (isset($diagnosis_data['app_credentials_test']['details'])): ?>
+                        <details style="margin-top: 10px;">
+                            <summary style="cursor: pointer;">📋 Dettagli Test Credenziali</summary>
+                            <pre style="background: #f9f9f9; padding: 10px; margin: 5px 0; font-size: 11px; border-radius: 3px;"><?php echo esc_html(json_encode($diagnosis_data['app_credentials_test']['details'], JSON_PRETTY_PRINT)); ?></pre>
+                        </details>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
                 
                 <!-- Credenziali -->
                 <h4>🔑 Credenziali</h4>
                 <table class="widefat" style="margin-bottom: 20px;">
                     <tr>
-                        <th>App Key</th>
+                        <th style="width: 150px;">App Key</th>
                         <td><?php echo $diagnosis_data['credentials']['app_key_set'] ? '✅ SET' : '❌ MISSING'; ?></td>
                         <td><?php echo esc_html($diagnosis_data['credentials']['app_key_preview']); ?></td>
                     </tr>
@@ -1195,7 +1481,7 @@ class Naval_EGT_Admin {
                 <h4>💾 Token Database</h4>
                 <table class="widefat" style="margin-bottom: 20px;">
                     <tr>
-                        <th>Naval Database</th>
+                        <th style="width: 150px;">Naval Database</th>
                         <td><?php echo $diagnosis_data['database_tokens']['naval_db_token_exists'] ? '✅ EXISTS' : '❌ EMPTY'; ?></td>
                         <td><?php echo $diagnosis_data['database_tokens']['naval_db_token_length']; ?> caratteri</td>
                     </tr>
@@ -1218,20 +1504,30 @@ class Naval_EGT_Admin {
                 <?php if (!isset($diagnosis_data['token_analysis']['error'])): ?>
                 <h4>🔍 Analisi Token</h4>
                 <div style="background: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-                    <table class="widefat">
-                        <tr><th>Lunghezza</th><td><?php echo $diagnosis_data['token_analysis']['length']; ?> caratteri</td></tr>
+                    <table class="widefat" style="background: transparent;">
+                        <tr><th style="width: 200px;">Lunghezza</th><td><?php echo $diagnosis_data['token_analysis']['length']; ?> caratteri</td></tr>
                         <tr><th>Caratteri unici</th><td><?php echo $diagnosis_data['token_analysis']['unique_chars']; ?></td></tr>
                         <tr><th>Contiene spazi</th><td><?php echo $diagnosis_data['token_analysis']['contains_spaces'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
                         <tr><th>Contiene newline</th><td><?php echo $diagnosis_data['token_analysis']['contains_newlines'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                        <tr><th>Whitespace iniziale</th><td><?php echo $diagnosis_data['token_analysis']['has_leading_whitespace'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                        <tr><th>Whitespace finale</th><td><?php echo $diagnosis_data['token_analysis']['has_trailing_whitespace'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
                         <tr><th>Inizia con "sl."</th><td><?php echo $diagnosis_data['token_analysis']['dropbox_patterns']['starts_with_sl'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                        <tr><th>Ha underscores</th><td><?php echo $diagnosis_data['token_analysis']['dropbox_patterns']['has_underscores'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
                         <tr><th>Lunghezza ragionevole</th><td><?php echo $diagnosis_data['token_analysis']['dropbox_patterns']['reasonable_length'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
-                        <tr><th style="font-weight: bold; color: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#00a32a' : '#dc3232'; ?>;">
-                            SEMBRA VALIDO</th>
-                            <td style="font-weight: bold; color: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#00a32a' : '#dc3232'; ?>;">
+                        <tr style="background: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#d4edda' : '#f8d7da'; ?>;">
+                            <th style="font-weight: bold; color: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#155724' : '#721c24'; ?>;">
+                                SEMBRA VALIDO
+                            </th>
+                            <td style="font-weight: bold; color: <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '#155724' : '#721c24'; ?>;">
                                 <?php echo $diagnosis_data['token_analysis']['seems_valid'] ? '✅ SÌ' : '❌ NO'; ?>
                             </td>
                         </tr>
                     </table>
+                </div>
+                <?php else: ?>
+                <div style="background: #ffeaea; padding: 15px; margin: 10px 0; border: 1px solid #dc3232; border-radius: 4px;">
+                    <h4 style="color: #dc3232; margin: 0 0 10px 0;">❌ Token Mancante</h4>
+                    <p style="margin: 0;"><?php echo esc_html($diagnosis_data['token_analysis']['error']); ?></p>
                 </div>
                 <?php endif; ?>
 
@@ -1239,12 +1535,59 @@ class Naval_EGT_Admin {
                 <?php if (isset($diagnosis_data['token_tests']['summary'])): ?>
                 <h4>🧪 Test Connessione API</h4>
                 <div style="background: <?php echo $diagnosis_data['token_tests']['summary']['success_count'] > 0 ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-                    <p><strong>Metodi testati:</strong> <?php echo $diagnosis_data['token_tests']['summary']['total_methods_tested']; ?></p>
-                    <p><strong>Metodi funzionanti:</strong> <?php echo $diagnosis_data['token_tests']['summary']['success_count']; ?></p>
-                    <p><strong>Token funziona:</strong> <?php echo $diagnosis_data['token_tests']['summary']['token_seems_valid'] ? '✅ SÌ' : '❌ NO'; ?></p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                        <div>
+                            <p><strong>Metodi testati:</strong> <?php echo $diagnosis_data['token_tests']['summary']['total_methods_tested']; ?></p>
+                            <p><strong>Metodi funzionanti:</strong> <?php echo $diagnosis_data['token_tests']['summary']['success_count']; ?></p>
+                            <p><strong>Token funziona:</strong> <?php echo $diagnosis_data['token_tests']['summary']['token_seems_valid'] ? '✅ SÌ' : '❌ NO'; ?></p>
+                        </div>
+                        <div>
+                            <?php if (!empty($diagnosis_data['token_tests']['summary']['successful_methods'])): ?>
+                                <p><strong>Metodi che funzionano:</strong></p>
+                                <ul style="margin: 5px 0 0 20px;">
+                                    <?php foreach ($diagnosis_data['token_tests']['summary']['successful_methods'] as $method): ?>
+                                        <li><?php echo esc_html($method); ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+                    </div>
                     
-                    <?php if (!empty($diagnosis_data['token_tests']['summary']['successful_methods'])): ?>
-                        <p><strong>Metodi che funzionano:</strong> <?php echo implode(', ', $diagnosis_data['token_tests']['summary']['successful_methods']); ?></p>
+                    <!-- Dettagli test singoli -->
+                    <details style="margin-top: 15px;">
+                        <summary style="cursor: pointer; font-weight: bold;">📋 Dettagli Test Singoli</summary>
+                        <table class="widefat" style="margin: 10px 0;">
+                            <thead>
+                                <tr><th>Metodo</th><th>Stato</th><th>HTTP Code</th><th>Errore</th></tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($diagnosis_data['token_tests'] as $method => $result): ?>
+                                    <?php if ($method === 'summary') continue; ?>
+                                    <tr>
+                                        <td><?php echo esc_html($method); ?></td>
+                                        <td><?php echo $result['success'] ? '✅' : '❌'; ?></td>
+                                        <td><?php echo $result['http_code'] ?? 'N/A'; ?></td>
+                                        <td><?php echo esc_html($result['curl_error'] ?? $result['wp_error'] ?? '-'); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </details>
+                </div>
+                <?php endif; ?>
+
+                <!-- Test Connessione Finale -->
+                <?php if (isset($diagnosis_data['connection_test'])): ?>
+                <h4>📡 Test Connessione Finale</h4>
+                <div style="background: <?php echo $diagnosis_data['connection_test']['success'] ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                    <p><strong>Risultato:</strong> <?php echo $diagnosis_data['connection_test']['success'] ? '✅ SUCCESSO' : '❌ FALLITO'; ?></p>
+                    <p><strong>Messaggio:</strong> <?php echo esc_html($diagnosis_data['connection_test']['message']); ?></p>
+                    
+                    <?php if ($diagnosis_data['connection_test']['success'] && isset($diagnosis_data['connection_test']['account'])): ?>
+                        <p><strong>Account:</strong> <?php echo esc_html($diagnosis_data['connection_test']['account']['email'] ?? 'N/A'); ?></p>
+                        <?php if (isset($diagnosis_data['connection_test']['account']['name']['display_name'])): ?>
+                            <p><strong>Nome:</strong> <?php echo esc_html($diagnosis_data['connection_test']['account']['name']['display_name']); ?></p>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
@@ -1252,24 +1595,157 @@ class Naval_EGT_Admin {
                 <!-- Raccomandazioni -->
                 <?php if (isset($diagnosis_data['recommendations']) && !empty($diagnosis_data['recommendations'])): ?>
                 <h4>💡 Raccomandazioni Dettagliate</h4>
-                <?php foreach ($diagnosis_data['recommendations'] as $rec): ?>
-                    <div style="background: #fff; padding: 15px; margin: 10px 0; border-left: 4px solid <?php echo $rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#ffb900' : '#00a32a'); ?>;">
-                        <h5 style="margin: 0 0 10px 0; color: <?php echo $rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#ffb900' : '#00a32a'); ?>;">
-                            <?php echo esc_html($rec['priority']); ?>: <?php echo esc_html($rec['issue']); ?>
+                <?php foreach ($diagnosis_data['recommendations'] as $i => $rec): ?>
+                    <div style="background: #fff; padding: 15px; margin: 10px 0; border-left: 4px solid <?php echo $rec['priority'] === 'CRITICAL' ? '#dc3232' : ($rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#ffb900' : '#00a32a')); ?>; border-radius: 0 4px 4px 0;">
+                        <h5 style="margin: 0 0 10px 0; color: <?php echo $rec['priority'] === 'CRITICAL' ? '#dc3232' : ($rec['priority'] === 'HIGH' ? '#dc3232' : ($rec['priority'] === 'MEDIUM' ? '#b8860b' : '#00a32a')); ?>;">
+                            #<?php echo $i + 1; ?> - <?php echo esc_html($rec['priority']); ?>: <?php echo esc_html($rec['issue']); ?>
                         </h5>
-                        <p><strong>Soluzione:</strong> <?php echo esc_html($rec['solution']); ?></p>
-                        <p><strong>Azione:</strong> <code><?php echo esc_html($rec['action']); ?></code></p>
+                        <p><strong>💡 Soluzione:</strong> <?php echo esc_html($rec['solution']); ?></p>
+                        <p><strong>🔧 Azione:</strong> <code><?php echo esc_html($rec['action']); ?></code></p>
                     </div>
                 <?php endforeach; ?>
                 <?php endif; ?>
 
                 <details style="margin-top: 20px;">
-                    <summary style="cursor: pointer; font-weight: bold;">📋 Dati Completi (clicca per espandere)</summary>
-                    <pre style="background: #f0f0f0; padding: 15px; margin: 10px 0; font-size: 11px; overflow: auto; max-height: 500px;"><?php echo esc_html(json_encode($diagnosis_data, JSON_PRETTY_PRINT)); ?></pre>
+                    <summary style="cursor: pointer; font-weight: bold; font-size: 14px;">📋 Dati Completi Diagnosi (clicca per espandere)</summary>
+                    <pre style="background: #f0f0f0; padding: 15px; margin: 10px 0; font-size: 10px; overflow: auto; max-height: 500px; border-radius: 4px;"><?php echo esc_html(json_encode($diagnosis_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)); ?></pre>
                 </details>
             </div>
             <?php 
             delete_transient('naval_egt_dropbox_diagnosis');
+            endif; ?>
+
+            <!-- AGGIORNATO: Token analysis se disponibile -->
+            <?php if ($token_analysis): ?>
+            <div class="card" style="border-left: 4px solid #ffb900;">
+                <h3>🔑 Analisi Token Dettagliata Standalone</h3>
+                
+                <?php if (isset($token_analysis['error'])): ?>
+                    <div style="background: #ffeaea; padding: 15px; border-radius: 4px;">
+                        <p style="color: #dc3232; margin: 0;"><strong>❌ <?php echo esc_html($token_analysis['error']); ?></strong></p>
+                    </div>
+                <?php else: ?>
+                    <div style="background: <?php echo $token_analysis['seems_valid'] ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; border-radius: 4px; margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 15px 0; color: <?php echo $token_analysis['seems_valid'] ? '#00a32a' : '#dc3232'; ?>;">
+                            <?php echo $token_analysis['seems_valid'] ? '✅ Token Sembra Valido' : '❌ Token Non Valido'; ?>
+                        </h4>
+                        
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h5>📊 Statistiche Base</h5>
+                                <table class="widefat" style="background: transparent;">
+                                    <tr><th>Lunghezza</th><td><?php echo $token_analysis['length']; ?> caratteri</td></tr>
+                                    <tr><th>Caratteri unici</th><td><?php echo $token_analysis['unique_chars']; ?></td></tr>
+                                    <tr><th>Primo carattere</th><td><code><?php echo esc_html($token_analysis['first_char']); ?></code></td></tr>
+                                    <tr><th>Ultimo carattere</th><td><code><?php echo esc_html($token_analysis['last_char']); ?></code></td></tr>
+                                </table>
+                            </div>
+                            <div>
+                                <h5>🔍 Validazione</h5>
+                                <table class="widefat" style="background: transparent;">
+                                    <tr><th>Contiene spazi</th><td><?php echo $token_analysis['contains_spaces'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                                    <tr><th>Contiene newline</th><td><?php echo $token_analysis['contains_newlines'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                                    <tr><th>Whitespace iniziale</th><td><?php echo $token_analysis['has_leading_whitespace'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                                    <tr><th>Whitespace finale</th><td><?php echo $token_analysis['has_trailing_whitespace'] ? '❌ SÌ' : '✅ NO'; ?></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <h5>🎯 Pattern Dropbox</h5>
+                        <table class="widefat" style="background: transparent; margin-top: 10px;">
+                            <tr><th style="width: 200px;">Inizia con "sl."</th><td><?php echo $token_analysis['dropbox_patterns']['starts_with_sl'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                            <tr><th>Ha underscores</th><td><?php echo $token_analysis['dropbox_patterns']['has_underscores'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                            <tr><th>Lunghezza ragionevole</th><td><?php echo $token_analysis['dropbox_patterns']['reasonable_length'] ? '✅ SÌ' : '❌ NO'; ?></td></tr>
+                        </table>
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.5); border-radius: 4px;">
+                            <p><strong>📝 Anteprima Token:</strong></p>
+                            <p><strong>Inizio:</strong> <code><?php echo esc_html($token_analysis['starts_with']); ?></code></p>
+                            <p><strong>Fine:</strong> <code><?php echo esc_html($token_analysis['ends_with']); ?></code></p>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php 
+            delete_transient('naval_egt_token_analysis');
+            endif; ?>
+
+            <!-- AGGIORNATO: Test multipli se disponibili -->
+            <?php if ($multiple_tests): ?>
+            <div class="card" style="border-left: 4px solid #7c3aed;">
+                <h3>🧪 Risultati Test Multipli Dettagliati</h3>
+                
+                <?php if (isset($multiple_tests['error'])): ?>
+                    <div style="background: #ffeaea; padding: 15px; border-radius: 4px;">
+                        <p style="color: #dc3232; margin: 0;"><strong>❌ <?php echo esc_html($multiple_tests['error']); ?></strong></p>
+                    </div>
+                <?php else: ?>
+                    <!-- Riepilogo -->
+                    <?php if (isset($multiple_tests['summary'])): ?>
+                        <div style="background: <?php echo $multiple_tests['summary']['success_count'] > 0 ? '#eafaea' : '#ffeaea'; ?>; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+                            <h4 style="margin: 0 0 15px 0; color: <?php echo $multiple_tests['summary']['success_count'] > 0 ? '#00a32a' : '#dc3232'; ?>;">
+                                📊 Riepilogo: <?php echo $multiple_tests['summary']['success_count']; ?>/<?php echo $multiple_tests['summary']['total_methods_tested']; ?> metodi funzionanti
+                            </h4>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                                <div>
+                                    <p><strong>Token sembra valido:</strong> <?php echo $multiple_tests['summary']['token_seems_valid'] ? '✅ SÌ' : '❌ NO'; ?></p>
+                                    <p><strong>Metodi testati:</strong> <?php echo $multiple_tests['summary']['total_methods_tested']; ?></p>
+                                    <p><strong>Successi:</strong> <?php echo $multiple_tests['summary']['success_count']; ?></p>
+                                </div>
+                                <div>
+                                    <?php if (!empty($multiple_tests['summary']['successful_methods'])): ?>
+                                        <p><strong>✅ Metodi funzionanti:</strong></p>
+                                        <ul style="margin: 5px 0 0 20px;">
+                                            <?php foreach ($multiple_tests['summary']['successful_methods'] as $method): ?>
+                                                <li><code><?php echo esc_html($method); ?></code></li>
+                                            <?php endforeach; ?>
+                                        </ul>
+                                    <?php else: ?>
+                                        <p style="color: #dc3232;"><strong>❌ Nessun metodo funzionante</strong></p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Dettagli test singoli -->
+                    <table class="widefat">
+                        <thead>
+                            <tr>
+                                <th style="width: 200px;">Metodo</th>
+                                <th style="width: 80px;">Stato</th>
+                                <th style="width: 100px;">HTTP Code</th>
+                                <th style="width: 150px;">Errore</th>
+                                <th>Risposta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($multiple_tests as $method => $result): ?>
+                                <?php if ($method === 'summary') continue; ?>
+                                <tr style="background: <?php echo $result['success'] ? '#f0fff0' : '#fff0f0'; ?>;">
+                                    <td><strong><?php echo esc_html($method); ?></strong></td>
+                                    <td style="text-align: center;"><?php echo $result['success'] ? '✅ OK' : '❌ FAIL'; ?></td>
+                                    <td style="text-align: center;"><?php echo $result['http_code'] ?? 'N/A'; ?></td>
+                                    <td><?php echo esc_html($result['curl_error'] ?? $result['wp_error'] ?? '-'); ?></td>
+                                    <td>
+                                        <?php if (!empty($result['response_preview'])): ?>
+                                            <details>
+                                                <summary style="cursor: pointer;">📄 Mostra risposta (<?php echo $result['response_length'] ?? 0; ?> caratteri)</summary>
+                                                <pre style="background: #f9f9f9; padding: 8px; margin: 5px 0; font-size: 10px; max-height: 150px; overflow-y: auto;"><?php echo esc_html($result['response_preview']); ?></pre>
+                                            </details>
+                                        <?php else: ?>
+                                            <em>Nessuna risposta</em>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+            <?php 
+            delete_transient('naval_egt_multiple_tests');
             endif; ?>
             
             <!-- Stato configurazione -->
@@ -1324,20 +1800,20 @@ class Naval_EGT_Admin {
                 
                 <?php if (isset($debug_info['values_preview'])): ?>
                 <h3>Anteprima Valori</h3>
-                <ul>
-                    <li><strong>Access Token (Proprietà):</strong> <code><?php echo esc_html($debug_info['values_preview']['property_access_token']); ?></code></li>
-                    <li><strong>Access Token (Database):</strong> <code><?php echo esc_html($debug_info['values_preview']['database_access_token']); ?></code></li>
-                    <li><strong>Redirect URI:</strong> <code><?php echo esc_html($debug_info['redirect_uri']); ?></code></li>
-                </ul>
+                <table class="widefat">
+                    <tr><th style="width: 200px;">Access Token (Proprietà)</th><td><code><?php echo esc_html($debug_info['values_preview']['property_access_token']); ?></code></td></tr>
+                    <tr><th>Access Token (Database)</th><td><code><?php echo esc_html($debug_info['values_preview']['database_access_token']); ?></code></td></tr>
+                    <tr><th>Redirect URI</th><td><code><?php echo esc_html($debug_info['redirect_uri']); ?></code></td></tr>
+                </table>
                 <?php endif; ?>
             </div>
             
-            <!-- Azioni Debug -->
+            <!-- AGGIORNATO: Azioni Debug Avanzate con tutti i nuovi metodi -->
             <div class="card">
                 <h2>Azioni Debug Avanzate</h2>
                 <p>Usa questi pulsanti per diagnosticare e risolvere problemi complessi:</p>
                 
-                <!-- Riga 1: Test e Analisi -->
+                <!-- Riga 1: Test e Analisi Principali -->
                 <div style="margin-bottom: 15px;">
                     <form method="post" style="display: inline-block; margin-right: 10px;">
                         <?php wp_nonce_field('naval_egt_debug_diagnosis'); ?>
@@ -1345,19 +1821,53 @@ class Naval_EGT_Admin {
                     </form>
                     
                     <form method="post" style="display: inline-block; margin-right: 10px;">
+                        <?php wp_nonce_field('naval_egt_debug_cred'); ?>
+                        <input type="submit" name="test_app_credentials" class="button" value="🔑 Test Credenziali App" />
+                    </form>
+                    
+                    <form method="post" style="display: inline-block; margin-right: 10px;">
                         <?php wp_nonce_field('naval_egt_debug_test'); ?>
                         <input type="submit" name="test_configuration" class="button" value="🧪 Test Configurazione Veloce" />
                     </form>
+                </div>
+
+                <!-- Riga 2: Analisi Token -->
+                <div style="margin-bottom: 15px;">
+                    <form method="post" style="display: inline-block; margin-right: 10px;">
+                        <?php wp_nonce_field('naval_egt_debug_token'); ?>
+                        <input type="submit" name="analyze_token_detailed" class="button" value="🔍 Analisi Token Dettagliata" />
+                    </form>
                     
+                    <form method="post" style="display: inline-block; margin-right: 10px;">
+                        <?php wp_nonce_field('naval_egt_debug_multi'); ?>
+                        <input type="submit" name="test_multiple_methods" class="button" value="🧪 Test Metodi Multipli" />
+                    </form>
+                    
+                    <form method="post" style="display: inline-block; margin-right: 10px;">
+                        <?php wp_nonce_field('naval_egt_debug_export'); ?>
+                        <input type="submit" name="export_debug_complete" class="button" value="📊 Esporta Debug Completo" />
+                    </form>
+                </div>
+
+                <!-- Riga 3: Gestione Sistema -->
+                <div style="margin-bottom: 15px;">
                     <form method="post" style="display: inline-block; margin-right: 10px;">
                         <?php wp_nonce_field('naval_egt_debug_reload'); ?>
                         <input type="submit" name="reload_credentials" class="button" value="🔄 Ricarica Credenziali" />
                     </form>
+                    
+                    <form method="post" style="display: inline-block; margin-right: 10px;">
+                        <?php wp_nonce_field('naval_egt_debug_clear'); ?>
+                        <input type="submit" name="clear_debug_logs" class="button button-secondary" value="🗑️ Pulisci Log Debug" />
+                    </form>
                 </div>
 
-                <!-- Riga 2: Azioni Critiche -->
-                <div style="margin-bottom: 15px;">
-                    <form method="post" style="display: inline-block; margin-right: 10px;">
+                <!-- Riga 4: Azioni Critiche -->
+                <div style="margin-bottom: 15px; padding: 15px; background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                    <h4 style="margin: 0 0 10px 0; color: #856404;">⚠️ Azioni Critiche</h4>
+                    <p style="margin: 0 0 15px 0; color: #856404;"><strong>Usa con cautela - queste azioni cancelleranno i token esistenti:</strong></p>
+                    
+                    <form method="post" style="display: inline-block;">
                         <?php wp_nonce_field('naval_egt_debug_regen'); ?>
                         <input type="submit" name="force_token_regeneration" 
                                class="button" 
@@ -1365,18 +1875,16 @@ class Naval_EGT_Admin {
                                value="🔄 Rigenera Token Completamente" 
                                onclick="return confirm('⚠️ ATTENZIONE: Questo cancellerà completamente il token corrente.\n\nDovrai riautorizzare l\'applicazione su Dropbox.\n\nUsa questo solo se il token è definitivamente corrotto.\n\nProcedere con la rigenerazione?');" />
                     </form>
-                    
-                    <form method="post" style="display: inline-block;">
-                        <?php wp_nonce_field('naval_egt_debug_clear'); ?>
-                        <input type="submit" name="clear_debug_logs" class="button button-secondary" value="🗑️ Pulisci Log Debug" 
-                               onclick="return confirm('Vuoi pulire tutti i log di debug?');" />
-                    </form>
                 </div>
 
-                <!-- Riga 3: Link Veloci-->
+                <!-- Riga 5: Link Veloci-->
                 <div>
                     <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=dropbox'); ?>" class="button">
                         ↩️ Torna a Configurazione Dropbox
+                    </a>
+                    
+                    <a href="<?php echo admin_url('admin.php?page=naval-egt&tab=overview'); ?>" class="button" style="margin-left: 10px;">
+                        🏠 Torna alla Panoramica
                     </a>
                 </div>
                 
@@ -1441,6 +1949,7 @@ class Naval_EGT_Admin {
                             <tr><th>PHP</th><td><?php echo phpversion(); ?></td></tr>
                             <tr><th>SSL</th><td><?php echo is_ssl() ? '✅ Attivo' : '❌ Inattivo'; ?></td></tr>
                             <tr><th>WP Debug</th><td><?php echo (defined('WP_DEBUG') && WP_DEBUG) ? '✅ Attivo' : '❌ Inattivo'; ?></td></tr>
+                            <tr><th>cURL</th><td><?php echo function_exists('curl_init') ? '✅ Disponibile' : '❌ Non disponibile'; ?></td></tr>
                         </table>
                     </div>
                     <div>
@@ -1473,16 +1982,18 @@ class Naval_EGT_Admin {
                     <h4>🔍 Diagnostica il Problema:</h4>
                     <ol>
                         <li><strong>Usa "Diagnosi Completa Avanzata"</strong> - Ti darà un report dettagliato del problema</li>
+                        <li><strong>Usa "Test Credenziali App"</strong> - Verifica che le credenziali hardcoded siano valide</li>
                         <li><strong>Controlla i Log Debug</strong> - Cerca errori specifici nei log qui sopra</li>
-                        <li><strong>Verifica URL Redirect</strong> - Deve essere esatto nell'app Dropbox</li>
-                        <li><strong>Test Configurazione Veloce</strong> - Per un controllo rapido</li>
+                        <li><strong>Usa "Analisi Token Dettagliata"</strong> - Per capire se il token è corrotto</li>
+                        <li><strong>Usa "Test Metodi Multipli"</strong> - Per vedere quale metodo API funziona</li>
                     </ol>
                     
                     <h4>🔧 Risolvi il Problema:</h4>
                     <ol>
+                        <li><strong>Se le credenziali app falliscono:</strong> C'è un problema con App Key/Secret hardcoded</li>
                         <li><strong>Se il token è corrotto:</strong> Usa "Rigenera Token Completamente"</li>
                         <li><strong>Se l'autorizzazione fallisce:</strong> Prova "Autorizza Manualmente"</li>
-                        <li><strong>Se persistono problemi:</strong> Controlla le credenziali Dropbox App</li>
+                        <li><strong>Se persistono problemi:</strong> Usa "Esporta Debug Completo" e contatta il supporto</li>
                     </ol>
                 </div>
                 <?php else: ?>
@@ -1491,6 +2002,7 @@ class Naval_EGT_Admin {
                     <p>La configurazione base è corretta. Se riscontri ancora problemi specifici:</p>
                     <ul>
                         <li>Usa "Test Configurazione Veloce" per verifiche puntuali</li>
+                        <li>Usa "Test Metodi Multipli" se alcuni file/operazioni falliscono</li>
                         <li>Controlla i Log Debug per errori durante l'uso</li>
                         <li>Usa "Diagnosi Completa" se ci sono problemi intermittenti</li>
                     </ul>
@@ -1533,10 +2045,12 @@ class Naval_EGT_Admin {
                 <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; margin: 15px 0; border-radius: 4px;">
                     <h4>💡 Suggerimenti Pro</h4>
                     <ul>
-                        <li><strong>Token troppo lungo?</strong> Potrebbe essere corrotto durante il salvataggio</li>
+                        <li><strong>Token troppo lungo/corto?</strong> Potrebbe essere corrotto durante il salvataggio</li>
                         <li><strong>Pochi caratteri unici?</strong> Il token potrebbe essere stato alterato</li>
-                        <li><strong>Test API falliscono?</strong> Problema di rete o token invalido</li>
+                        <li><strong>Test API falliscono tutti?</strong> Problema di rete o token completamente invalido</li>
+                        <li><strong>Solo alcuni test falliscono?</strong> Problema specifico di configurazione server</li>
                         <li><strong>Autorizzazione non funziona?</strong> Controlla URL redirect nell'app Dropbox</li>
+                        <li><strong>Token sembra valido ma non funziona?</strong> Potrebbe essere scaduto o revocato</li>
                     </ul>
                 </div>
             </div>
@@ -1620,6 +2134,31 @@ class Naval_EGT_Admin {
             case 'refresh_stats':
                 $this->refresh_stats();
                 break;
+
+            // NUOVI: Azioni AJAX per debug Dropbox
+            case 'run_dropbox_diagnosis':
+                $this->ajax_run_dropbox_diagnosis();
+                break;
+                
+            case 'test_app_credentials':
+                $this->ajax_test_app_credentials();
+                break;
+                
+            case 'analyze_token_detailed':
+                $this->ajax_analyze_token_detailed();
+                break;
+                
+            case 'test_multiple_methods':
+                $this->ajax_test_multiple_methods();
+                break;
+                
+            case 'force_reauth':
+                $this->ajax_force_reauth();
+                break;
+                
+            case 'export_debug_info':
+                $this->ajax_export_debug_info();
+                break;
                 
             default:
                 wp_send_json_error('Azione non valida');
@@ -1627,6 +2166,219 @@ class Naval_EGT_Admin {
         }
         
         wp_die();
+    }
+
+    /**
+     * NUOVO: AJAX - Esegui diagnosi Dropbox
+     */
+    private function ajax_run_dropbox_diagnosis() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $diagnosis = $dropbox->full_system_diagnosis();
+        
+        wp_send_json_success(array(
+            'message' => 'Diagnosi completata',
+            'diagnosis' => $diagnosis,
+            'summary' => $this->generate_diagnosis_summary($diagnosis)
+        ));
+    }
+
+    /**
+     * NUOVO: AJAX - Test credenziali app
+     */
+    private function ajax_test_app_credentials() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $result = $dropbox->test_app_credentials();
+        
+        if ($result['success']) {
+            wp_send_json_success($result['message']);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+
+    /**
+     * NUOVO: AJAX - Analizza token dettagliato
+     */
+    private function ajax_analyze_token_detailed() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $analysis = $dropbox->analyze_token_detailed();
+        
+        wp_send_json_success(array(
+            'message' => 'Analisi token completata',
+            'analysis' => $analysis,
+            'summary' => $this->generate_token_summary($analysis)
+        ));
+    }
+
+    /**
+     * NUOVO: AJAX - Test metodi multipli
+     */
+    private function ajax_test_multiple_methods() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $tests = $dropbox->test_token_multiple_methods();
+        
+        wp_send_json_success(array(
+            'message' => 'Test multipli completati',
+            'tests' => $tests,
+            'summary' => isset($tests['summary']) ? $tests['summary'] : array()
+        ));
+    }
+
+    /**
+     * NUOVO: AJAX - Forza riautenticazione
+     */
+    private function ajax_force_reauth() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $result = $dropbox->force_reauth();
+        
+        if ($result['success']) {
+            wp_send_json_success(array(
+                'message' => $result['message'],
+                'auth_url' => $result['auth_url'] ?? null
+            ));
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+
+    /**
+     * NUOVO: AJAX - Esporta informazioni debug
+     */
+    private function ajax_export_debug_info() {
+        if (!current_user_can('manage_options')) {
+            wp_send_json_error('Permessi insufficienti');
+        }
+        
+        $dropbox = Naval_EGT_Dropbox::get_instance();
+        $debug_info = $dropbox->export_debug_info();
+        
+        wp_send_json_success(array(
+            'message' => 'Informazioni debug esportate',
+            'debug_info' => $debug_info,
+            'export_size' => strlen(json_encode($debug_info))
+        ));
+    }
+
+    /**
+     * NUOVO: Genera riassunto diagnosi
+     */
+    private function generate_diagnosis_summary($diagnosis) {
+        $summary = array(
+            'overall_status' => 'unknown',
+            'critical_issues' => 0,
+            'warnings' => 0,
+            'recommendations_count' => 0,
+            'key_findings' => array()
+        );
+        
+        // Analizza credenziali app
+        if (isset($diagnosis['app_credentials_test'])) {
+            if (!$diagnosis['app_credentials_test']['success']) {
+                $summary['critical_issues']++;
+                $summary['key_findings'][] = 'Credenziali app non valide';
+            }
+        }
+        
+        // Analizza token
+        if (isset($diagnosis['token_analysis']['error'])) {
+            $summary['critical_issues']++;
+            $summary['key_findings'][] = 'Token mancante';
+        } elseif (isset($diagnosis['token_analysis']['seems_valid']) && !$diagnosis['token_analysis']['seems_valid']) {
+            $summary['warnings']++;
+            $summary['key_findings'][] = 'Token potenzialmente corrotto';
+        }
+        
+        // Analizza test API
+        if (isset($diagnosis['token_tests']['summary']['success_count'])) {
+            $success_count = $diagnosis['token_tests']['summary']['success_count'];
+            $total_count = $diagnosis['token_tests']['summary']['total_methods_tested'];
+            
+            if ($success_count === 0) {
+                $summary['critical_issues']++;
+                $summary['key_findings'][] = 'Tutti i test API falliscono';
+            } elseif ($success_count < $total_count / 2) {
+                $summary['warnings']++;
+                $summary['key_findings'][] = 'Alcuni test API falliscono';
+            }
+        }
+        
+        // Conta raccomandazioni
+        if (isset($diagnosis['recommendations'])) {
+            $summary['recommendations_count'] = count($diagnosis['recommendations']);
+        }
+        
+        // Determina stato generale
+        if ($summary['critical_issues'] > 0) {
+            $summary['overall_status'] = 'critical';
+        } elseif ($summary['warnings'] > 0) {
+            $summary['overall_status'] = 'warning';
+        } else {
+            $summary['overall_status'] = 'good';
+        }
+        
+        return $summary;
+    }
+
+    /**
+     * NUOVO: Genera riassunto token
+     */
+    private function generate_token_summary($analysis) {
+        if (isset($analysis['error'])) {
+            return array(
+                'status' => 'error',
+                'message' => $analysis['error']
+            );
+        }
+        
+        $issues = array();
+        
+        if ($analysis['contains_spaces']) {
+            $issues[] = 'Contiene spazi';
+        }
+        
+        if ($analysis['contains_newlines']) {
+            $issues[] = 'Contiene newline';
+        }
+        
+        if ($analysis['has_leading_whitespace'] || $analysis['has_trailing_whitespace']) {
+            $issues[] = 'Ha whitespace non necessario';
+        }
+        
+        if (!$analysis['dropbox_patterns']['starts_with_sl']) {
+            $issues[] = 'Non inizia con "sl."';
+        }
+        
+        if (!$analysis['dropbox_patterns']['reasonable_length']) {
+            $issues[] = 'Lunghezza non ragionevole';
+        }
+        
+        return array(
+            'status' => $analysis['seems_valid'] ? 'valid' : 'invalid',
+            'length' => $analysis['length'],
+            'unique_chars' => $analysis['unique_chars'],
+            'issues' => $issues,
+            'issues_count' => count($issues)
+        );
     }
     
     /**

@@ -3,7 +3,7 @@
  * Plugin Name: Naval EGT - Area Riservata Clienti
  * Plugin URI: https://metrikmind.it
  * Description: Plugin completo per gestione area riservata clienti con integrazione Dropbox
- * Version: 1.0.19
+ * Version: 1.0.20
  * Author: Metrikmind
  * Author URI: https://metrikmind.it
  * Requires at least: 6.8.2
